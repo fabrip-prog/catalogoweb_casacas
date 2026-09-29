@@ -1,0 +1,272 @@
+/* ===== CasacasStore - Custom Styles ===== */
+
+/* --- Zoom / Magnifier Effect --- */
+.zoom-container {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+
+.zoom-container img {
+  transition: transform 0.3s ease;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.zoom-lens {
+  position: absolute;
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 140px;
+  height: 140px;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.25), inset 0 0 10px rgba(0,0,0,0.1);
+  display: none;
+  z-index: 10;
+}
+
+.zoom-container:hover .zoom-lens {
+  display: block;
+}
+
+/* Mobile: tap to zoom instead */
+@media (hover: none) {
+  .zoom-lens { display: none !important; }
+  .zoom-container { cursor: pointer; }
+}
+
+/* --- Cart Sidebar --- */
+.cart-sidebar {
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cart-sidebar.open {
+  transform: translateX(0);
+}
+
+/* --- Modal --- */
+.modal-overlay {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-content {
+  transform: scale(0.92) translateY(20px);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1) translateY(0);
+}
+
+/* --- Full screen zoom modal (mobile) --- */
+.zoom-modal {
+  touch-action: pinch-zoom;
+}
+
+.zoom-modal img {
+  max-width: none;
+  transform-origin: center center;
+}
+
+/* --- Size Badge --- */
+.size-badge {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.size-badge.available {
+  cursor: pointer;
+}
+
+.size-badge.available:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.size-badge.available.selected {
+  background-color: #10b981 !important;
+  color: white !important;
+  border-color: #059669 !important;
+  transform: scale(1.05);
+}
+
+.size-badge.out-of-stock {
+  opacity: 0.35;
+  cursor: not-allowed;
+  position: relative;
+}
+
+.size-badge.out-of-stock::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: #9ca3af;
+  transform: rotate(-12deg);
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- Animations --- */
+@keyframes pulse-badge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.35); }
+}
+
+.cart-badge-pulse {
+  animation: pulse-badge 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.45s ease forwards;
+}
+
+/* Staggered card entrance */
+.stagger > * {
+  opacity: 0;
+  animation: fadeInUp 0.45s ease forwards;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.03s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.09s; }
+.stagger > *:nth-child(4) { animation-delay: 0.12s; }
+.stagger > *:nth-child(5) { animation-delay: 0.15s; }
+.stagger > *:nth-child(6) { animation-delay: 0.18s; }
+.stagger > *:nth-child(7) { animation-delay: 0.21s; }
+.stagger > *:nth-child(8) { animation-delay: 0.24s; }
+.stagger > *:nth-child(9) { animation-delay: 0.27s; }
+.stagger > *:nth-child(10) { animation-delay: 0.30s; }
+.stagger > *:nth-child(11) { animation-delay: 0.33s; }
+.stagger > *:nth-child(12) { animation-delay: 0.36s; }
+
+/* --- Product Card --- */
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+}
+
+/* --- League Nav --- */
+.league-btn {
+  transition: all 0.2s ease;
+  border-left: 4px solid transparent;
+}
+
+.league-btn.active {
+  border-left-color: #10b981;
+  background: linear-gradient(90deg, rgba(16,185,129,0.08), transparent);
+  font-weight: 600;
+}
+
+.league-btn:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.team-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.team-list.expanded {
+  max-height: 500px;
+}
+
+/* --- WhatsApp Button Glow --- */
+.btn-whatsapp:hover {
+  box-shadow: 0 0 20px rgba(37, 211, 102, 0.35);
+}
+
+/* --- Notifications --- */
+@keyframes slideInRight {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(120%); opacity: 0; }
+}
+
+.notif-enter { animation: slideInRight 0.35s ease forwards; }
+.notif-exit { animation: slideOutRight 0.35s ease forwards; }
+
+/* --- Mobile horizontal scroll nav --- */
+.mobile-league-bar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-league-bar::-webkit-scrollbar { display: none; }
+
+/* --- Image Gallery Thumbnails --- */
+.gallery-thumb {
+  border: 2px solid transparent;
+  transition: border-color 0.2s, opacity 0.2s;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.gallery-thumb.active,
+.gallery-thumb:hover {
+  border-color: #10b981;
+  opacity: 1;
+}
+
+/* --- Stock Indicator Dot --- */
+.stock-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* --- Admin Panel --- */
+.admin-row {
+  transition: background-color 0.15s;
+}
+
+.admin-row:hover {
+  background-color: rgba(16, 185, 129, 0.04);
+}
+
+/* --- Misc --- */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
