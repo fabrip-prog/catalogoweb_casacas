@@ -18,13 +18,33 @@
   const $$ = (sel) => document.querySelectorAll(sel);
 
   // ── Init ───────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
+  let appReady = false;
+
+  function bootstrapApp() {
+    if (appReady) return;       // ya se renderizó
+    appReady = true;
     cart.init();
     renderLeagueNav();
     renderMobileLeagueBar();
     renderView();
     bindEvents();
     renderFooter();
+  }
+
+  // Con Firebase: los datos llegan de forma asíncrona → esperamos storeReady
+  document.addEventListener('storeReady', () => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootstrapApp);
+    } else {
+      bootstrapApp();
+    }
+  });
+
+  // Sin Firebase (LocalStorage): los datos ya están disponibles al cargar
+  document.addEventListener('DOMContentLoaded', () => {
+    // Si storeReady no se disparó (no hay Firebase), arrancamos igual
+    if (!store.dataLoaded && store.dataLoaded !== undefined) return; // Firebase aún cargando
+    bootstrapApp();
   });
 
   document.addEventListener('storeUpdate', () => {

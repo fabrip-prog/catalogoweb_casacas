@@ -17,8 +17,27 @@
   let formLeagueLogo = null;
   let formTeamLogo = null;
 
+  // Con Firebase: esperamos que los datos estén listos antes de mostrar el dashboard
+  document.addEventListener('storeReady', () => {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => checkAuth());
+    } else {
+      checkAuth();
+    }
+  });
+
+  // Sin Firebase (LocalStorage): datos disponibles inmediatamente
   document.addEventListener('DOMContentLoaded', () => {
+    if (!store.dataLoaded && store.dataLoaded !== undefined) return;
     checkAuth();
+  });
+
+  // Actualizar listas cuando Firebase notifica cambios en tiempo real
+  document.addEventListener('storeUpdate', () => {
+    if (store.isAuthenticated()) {
+      renderStats();
+      switchTab(currentTab);
+    }
   });
 
   // ══════════════════════════════════════════════════════════════
@@ -596,7 +615,7 @@
     showAdminNotif(`Liga "${name}" eliminada`, 'success');
   };
 
-  window.handleLeagueSubmit = function (e) {
+  window.handleLeagueSubmit = async function (e) {
     e.preventDefault();
     const name = $('#formLeagueName').value.trim();
     const icon = $('#formLeagueIcon').value.trim() || '🏆';
@@ -611,10 +630,10 @@
 
     try {
       if (editingLeagueId) {
-        store.updateLeague(editingLeagueId, { name, icon, order, logo });
+        await store.updateLeague(editingLeagueId, { name, icon, order, logo });
         showAdminNotif('Liga actualizada', 'success');
       } else {
-        store.addLeague({ name, icon, order, logo });
+        await store.addLeague({ name, icon, order, logo });
         showAdminNotif('Liga creada', 'success');
       }
     } catch (err) {
@@ -746,7 +765,7 @@
     showAdminNotif(`Equipo "${name}" eliminado`, 'success');
   };
 
-  window.handleTeamSubmit = function (e) {
+  window.handleTeamSubmit = async function (e) {
     e.preventDefault();
     const name = $('#formTeamName').value.trim();
     const leagueId = $('#formTeamLeague').value;
@@ -761,10 +780,10 @@
 
     try {
       if (editingTeamId) {
-        store.updateTeam(editingTeamId, { name, leagueId, color, logo });
+        await store.updateTeam(editingTeamId, { name, leagueId, color, logo });
         showAdminNotif('Equipo actualizado', 'success');
       } else {
-        store.addTeam({ name, leagueId, color, logo });
+        await store.addTeam({ name, leagueId, color, logo });
         showAdminNotif('Equipo creado', 'success');
       }
     } catch (err) {

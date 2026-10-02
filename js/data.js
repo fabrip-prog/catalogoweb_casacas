@@ -538,5 +538,5 @@ class DataStore {
   }
 }
 
-// Instancia global
-const store = new DataStore();
+// Instancia global (se sobreescribe si Firebase está configurado, ver firebase-store.js)
+window.store = new DataStore();

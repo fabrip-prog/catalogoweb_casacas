@@ -29,7 +29,7 @@ if (useFirebase) {
   console.warn("⚠️ Firebase no está configurado. Usando la base de datos LocalStorage como respaldo.");
 }
 
-class DataStore {
+class FirebaseDataStore {
   constructor() {
     this.leagues = [];
     this.teams = [];
@@ -42,40 +42,44 @@ class DataStore {
   }
 
   _initListeners() {
-    let collectionsLoaded = 0;
-    const checkReady = () => {
-      collectionsLoaded++;
-      // Esperamos 4 colecciones (leagues, teams, products, settings)
-      if (collectionsLoaded === 4) {
+    const loaded = { leagues: false, teams: false, products: false, settings: false };
+    const checkReady = (name) => {
+      loaded[name] = true;
+      const allLoaded = Object.values(loaded).every(Boolean);
+      if (allLoaded && !this.dataLoaded) {
         this.dataLoaded = true;
-        // Avisar a la app que los datos están listos
         document.dispatchEvent(new Event('storeReady'));
         this._checkInitialData();
       } else if (this.dataLoaded) {
-        // Si hay actualizaciones después de la carga inicial
         document.dispatchEvent(new Event('storeUpdate'));
       }
     };
 
+    const handleError = (name, err) => {
+      console.error(`Error cargando ${name} de Firestore:`, err);
+      // Si falla, marcamos como cargado para no bloquear la app
+      checkReady(name);
+    };
+
     db.collection('leagues').onSnapshot(snap => {
       this.leagues = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      checkReady();
-    }, err => console.error("Error cargando ligas (¿Configuraste Firebase?)", err));
+      checkReady('leagues');
+    }, err => handleError('leagues', err));
     
     db.collection('teams').onSnapshot(snap => {
       this.teams = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      checkReady();
-    });
+      checkReady('teams');
+    }, err => handleError('teams', err));
     
     db.collection('products').onSnapshot(snap => {
       this.products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      checkReady();
-    });
+      checkReady('products');
+    }, err => handleError('products', err));
 
     db.collection('settings').doc('general').onSnapshot(snap => {
       if (snap.exists) this.settings = snap.data();
-      checkReady();
-    });
+      checkReady('settings');
+    }, err => handleError('settings', err));
   }
 
   async _checkInitialData() {
@@ -189,5 +193,5 @@ class DataStore {
 
 // Reemplazamos la instancia global solo si configuró Firebase
 if (useFirebase) {
-  window.store = new DataStore();
+  window.store = new FirebaseDataStore();
 }
