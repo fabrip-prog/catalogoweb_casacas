@@ -9,8 +9,8 @@ const firebaseConfig = {
   projectId: "catalogoweb-fe44d",
   storageBucket: "catalogoweb-fe44d.firebasestorage.app",
   messagingSenderId: "1067884332174",
-  appId: "1:1067884332174:web:312a4bd253b8142bc7b5df",
-  measurementId: "G-LE8XWP32TL"
+  appId: "1:1067884332174:web:4b69e81e0f3aef04c7b5df",
+  measurementId: "G-7BD2V8LMJM"
 };
 
 // 2. Inicializar Firebase
