@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Tema de Tailwind (compartido por tienda y panel)
+   NYA Fútbol – Tema de Tailwind (compartido por tienda y panel)
    Los valores de color viven en css/styles.css; acá solo se exponen
    como utilidades. Las esquinas son rectas: todos los rounded-* valen 0
    salvo rounded-full.

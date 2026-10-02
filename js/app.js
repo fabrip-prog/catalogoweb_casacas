@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Main Catalog Application
+   NYA Fútbol – Main Catalog Application
    =================================================================== */
 
 (function () {
@@ -277,7 +277,7 @@
       <section class="hero">
         <div>
           <p class="label">Camisetas de fútbol</p>
-          <h1 class="hero-title">CasacasStore</h1>
+          <h1 class="hero-title">NYA Fútbol</h1>
           <p class="hero-lead">Las mejores camisetas de fútbol de todas las ligas del mundo. Calidad premium, envíos a todo el país.</p>
           <ul class="hero-leagues">
             <li>Liga Argentina</li>

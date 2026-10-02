@@ -1,4 +1,4 @@
-# ⚽ CasacasStore - Catálogo y Tienda Online
+# ⚽ NYA Fútbol - Catálogo y Tienda Online
 
 Este proyecto es una completa aplicación web de e-commerce y catálogo orientada a la venta de indumentaria deportiva (camisetas, shorts, etc.). Está construida de manera moderna, responsiva, sin dependencias pesadas y utilizando LocalStorage para la persistencia de los datos.
 

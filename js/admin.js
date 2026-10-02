@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Admin Panel Logic (Productos + Ligas + Equipos)
+   NYA Fútbol – Admin Panel Logic (Productos + Ligas + Equipos)
    =================================================================== */
 
 (function () {

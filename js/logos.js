@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Marca de ligas y equipos (compartido por tienda y panel)
+   NYA Fútbol – Marca de ligas y equipos (compartido por tienda y panel)
    Si se cargó un logo se muestra en lugar del emoji de la liga o del
    punto de color del equipo, al mismo tamaño que el texto que lo rodea.
    =================================================================== */

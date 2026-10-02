@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Firebase DataStore (Reemplazo de LocalStorage)
+   NYA Fútbol – Firebase DataStore (Reemplazo de LocalStorage)
    =================================================================== */
 
 // 1. Configuración de Firebase (DEBES REEMPLAZAR ESTOS VALORES)

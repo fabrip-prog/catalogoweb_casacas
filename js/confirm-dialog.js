@@ -1,5 +1,5 @@
 /* ===================================================================
-   CasacasStore – Ventana de confirmación (compartida por tienda y panel)
+   NYA Fútbol – Ventana de confirmación (compartida por tienda y panel)
    Reemplaza al confirm() del navegador con una ventana del estilo del
    sitio. Devuelve una promesa: true si se confirma, false si se cancela
    (botón, Escape o tocando fuera del cuadro).
