@@ -439,6 +439,12 @@ input[type="file"].field { height: auto; padding: 8px 10px; font-size: 13px; }
 }
 .chip:hover { border-color: var(--ink); }
 .chip.is-active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+/* Fila de filtro que no salta de línea: en el celular se desliza de costado */
+.chips-scroll { flex-wrap: nowrap; align-items: center; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+.chips-scroll::-webkit-scrollbar { display: none; }
+.chips-scroll .chip { flex: none; }
+.chips-label { flex: none; margin-right: 6px; }
+.card-quality { margin: 0; font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-2); }
 
 /* Portada */
 .home-sections { display: flex; flex-direction: column; gap: clamp(48px, 7cqi, 88px); }

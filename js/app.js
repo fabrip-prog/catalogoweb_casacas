@@ -10,6 +10,7 @@
   let currentTeam = null;
   let currentSearch = '';
   let showingAll = false;   // vista "Todos los productos" del menú
+  let currentQuality = '';  // filtro de calidad (W 15, Premium…); se combina con liga, equipo y búsqueda
   let homeAllShown = 0;     // productos desplegados en la portada (0 = sección cerrada)
   const HOME_BATCH = 8;     // cuántos se suman con cada "Ver más"
 
@@ -22,6 +23,7 @@
     cart.init();
     renderLeagueNav();
     renderMobileLeagueBar();
+    renderQualityFilter();
     renderView();
     bindEvents();
     renderFooter();
@@ -30,6 +32,7 @@
   document.addEventListener('storeUpdate', () => {
     renderLeagueNav();
     renderMobileLeagueBar();
+    renderQualityFilter();
     renderView();
     renderFooter();
   });
@@ -173,6 +176,7 @@
         <div class="meta">
           <h3 class="card-title" onclick="openProductModal('${p.id}')">${p.title}</h3>
           ${team ? `<p class="card-team">${teamMark(team)}${team.name}</p>` : ''}
+          ${p.quality ? `<p class="card-quality">${qualityLabel(p.quality)}</p>` : ''}
           ${compact ? '' : `<p class="card-desc">${p.description}</p>`}
 
           <!-- Price -->
@@ -231,7 +235,7 @@
   //  Main View Router
   // ══════════════════════════════════════════════════════════════
   function renderView() {
-    const isHome = !currentLeague && !currentTeam && !currentSearch && !showingAll;
+    const isHome = !currentLeague && !currentTeam && !currentSearch && !showingAll && !currentQuality;
     if (isHome) {
       renderHome();
     } else {
@@ -369,6 +373,7 @@
   // "Todos los productos" del menú: la grilla completa, sin filtros
   function showAllProducts() {
     showingAll = true;
+    currentQuality = '';
     currentLeague = null;
     currentTeam = null;
     currentSearch = '';
@@ -387,10 +392,27 @@
   //  FILTERED VIEW – Product Grid
   // ══════════════════════════════════════════════════════════════
   function getFilteredProducts() {
-    if (currentSearch) return store.searchProducts(currentSearch);
-    if (currentTeam) return store.getProductsByTeam(currentTeam);
-    if (currentLeague) return store.getProductsByLeague(currentLeague);
-    return store.getProducts();
+    let products;
+    if (currentSearch) products = store.searchProducts(currentSearch);
+    else if (currentTeam) products = store.getProductsByTeam(currentTeam);
+    else if (currentLeague) products = store.getProductsByLeague(currentLeague);
+    else products = store.getProducts();
+    return currentQuality ? products.filter(p => p.quality === currentQuality) : products;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  Filtro de calidad (fila de chips arriba de la grilla)
+  // ══════════════════════════════════════════════════════════════
+  function renderQualityFilter() {
+    const box = $('#qualityFilter');
+    if (!box) return;
+    box.innerHTML = `
+      <span class="label chips-label">Calidad</span>
+      <button class="chip ${!currentQuality ? 'is-active' : ''}" data-quality="">Todas</button>
+      ${QUALITIES.map(q => `
+        <button class="chip ${currentQuality === q.id ? 'is-active' : ''}" data-quality="${q.id}">${q.label}</button>
+      `).join('')}
+    `;
   }
 
   function renderProducts() {
@@ -465,6 +487,7 @@
         const leagueId = btn.dataset.league;
         showingAll = false;
         if (leagueId === 'all') {
+          currentQuality = '';
           currentLeague = null;
           currentTeam = null;
         } else {
@@ -522,6 +545,7 @@
         const id = btn.dataset.mleague;
         if (id === 'todos') { showAllProducts(); return; }
         showingAll = false;
+        if (id === 'all') currentQuality = '';
         currentLeague = id === 'all' ? null : id;
         currentTeam = null;
         currentSearch = '';
@@ -595,12 +619,17 @@
         parts.push(`<span class="crumb-current">${team?.name}</span>`);
       }
     }
+    if (currentQuality) {
+      parts.push(`<span class="crumb-sep">/</span>`);
+      parts.push(`<span class="crumb-current">Calidad ${qualityLabel(currentQuality)}</span>`);
+    }
 
     bc.innerHTML = parts.join('');
 
     bc.querySelector('[data-bc="home"]')?.addEventListener('click', (e) => {
       e.preventDefault();
       showingAll = false;
+      currentQuality = '';
       currentLeague = null;
       currentTeam = null;
       currentSearch = '';
@@ -618,6 +647,7 @@
   function renderAll() {
     renderLeagueNav();
     renderMobileLeagueBar();
+    renderQualityFilter();
     renderTeamFilter();
     renderView();
   }
@@ -673,6 +703,7 @@
             <!-- Badges -->
             <div class="pdp-tags">
               ${team ? `<span class="card-team">${teamMark(team)}${team.name}</span>` : ''}
+              ${product.quality ? `<span class="tag">Calidad ${qualityLabel(product.quality)}</span>` : ''}
               ${product.featured ? `<span class="tag">Destacado</span>` : ''}
               ${product.isNew ? `<span class="tag">Nuevo</span>` : ''}
               ${hasDiscount ? `<span class="tag low">-${discountPct}% OFF</span>` : ''}
@@ -902,11 +933,21 @@
 
     bindHeaderAutoHide();
 
+    // Filtro de calidad: desde la portada lleva a la grilla filtrada; "Todas" lo quita
+    $('#qualityFilter')?.addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-quality]');
+      if (!chip) return;
+      currentQuality = chip.dataset.quality;
+      renderQualityFilter();
+      renderView();
+    });
+
     // La marca lleva a la portada y arriba de todo, sin recargar la página
     $('.site-header .brand')?.addEventListener('click', (e) => {
       e.preventDefault();
-      if (currentLeague || currentTeam || currentSearch || showingAll) {
+      if (currentLeague || currentTeam || currentSearch || showingAll || currentQuality) {
         showingAll = false;
+        currentQuality = '';
         currentLeague = null;
         currentTeam = null;
         currentSearch = '';
@@ -996,9 +1037,10 @@
     `;
     
     cart.items.forEach(item => {
+      const quality = qualityLabel(store.getProductById(item.productId)?.quality);
       html += `
         <div class="flex justify-between text-xs mb-1 text-gray-600">
-          <span class="w-1/2 truncate pr-2">${item.title}</span>
+          <span class="w-1/2 truncate pr-2">${item.title}${quality ? ` (${quality})` : ''}</span>
           <span class="w-1/4 text-center text-gray-800">${item.quantity} x ${item.size}</span>
           <span class="w-1/4 text-right text-gray-800">${CONFIG.currency}${(item.price * item.quantity).toLocaleString('es-AR')}</span>
         </div>

@@ -156,6 +156,11 @@
                   <option value="">Primero seleccioná una liga</option>
                 </select>
               </div>
+              <div class="sm:col-span-2">
+                <label class="field-label" for="formQuality">Calidad</label>
+                <!-- Las opciones salen de QUALITIES en js/data.js -->
+                <select id="formQuality" class="field sm:w-1/2"></select>
+              </div>
               <div>
                 <label class="field-label" for="formPrice">Precio actual ($) *</label>
                 <input type="number" id="formPrice" required min="1" placeholder="45000"

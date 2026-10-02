@@ -120,7 +120,9 @@ class Cart {
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
     this.items.forEach((item, i) => {
+      const quality = qualityLabel(store.getProductById(item.productId)?.quality);
       msg += `${i + 1}. *${item.title}*\n`;
+      if (quality) msg += `   🏷️ Calidad: ${quality}\n`;
       msg += `   📏 Talle: ${item.size}\n`;
       msg += `   📦 Cantidad: ${item.quantity}\n`;
       msg += `   💰 Precio: ${CONFIG.currency}${item.price.toLocaleString('es-AR')}\n`;
@@ -142,6 +144,7 @@ class Cart {
 
     let msg = `👋 ¡Hola! Estoy interesado en:\n\n`;
     msg += `⚽ *${product.title}*\n`;
+    if (product.quality) msg += `🏷️ Calidad: ${qualityLabel(product.quality)}\n`;
     if (size) msg += `📏 Talle: ${size}\n`;
     msg += `💰 Precio: ${CONFIG.currency}${product.price.toLocaleString('es-AR')}\n\n`;
     msg += `¿Está disponible? ¡Gracias!`;

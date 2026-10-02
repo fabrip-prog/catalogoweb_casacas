@@ -19,6 +19,17 @@ const CONFIG = {
   },
 };
 
+// ── Calidades de las camisetas (filtro de la tienda y formulario del panel) ──
+const QUALITIES = [
+  { id: 'w15', label: 'W 15' },
+  { id: 'w18', label: 'W 18' },
+  { id: 'w26', label: 'W 26' },
+  { id: 'w30', label: 'W 30' },
+  { id: 'premium', label: 'Premium' },
+  { id: 'set', label: 'Set deportivo' },
+];
+const qualityLabel = (id) => (QUALITIES.find(q => q.id === id) || {}).label || '';
+
 // ── Sample Data ────────────────────────────────────────────────────
 const DEFAULT_LEAGUES = [
   { id: 'liga-argentina', name: 'Liga Argentina', icon: '🇦🇷', order: 1 },
@@ -298,11 +309,13 @@ const DEFAULT_PRODUCTS = [
 
 // ── Post-procesado: agregar flags a datos de ejemplo ─────────────
 // featured = producto destacado, isNew = nuevo ingreso,
-// originalPrice = precio original (si hay descuento), createdAt = fecha
+// originalPrice = precio original (si hay descuento), createdAt = fecha,
+// quality = calidad de ejemplo (los shorts como set deportivo, el resto repartido)
 (function () {
   const featured = ['prod-001','prod-004','prod-010','prod-012','prod-015','prod-017','prod-021'];
   const nuevo    = ['prod-002','prod-005','prod-016','prod-022','prod-025','prod-027'];
   const ofertas  = { 'prod-003': 35000, 'prod-006': 49000, 'prod-009': 48000, 'prod-011': 38000, 'prod-023': 36000, 'prod-019': 62000 };
+  const calidades = ['w15', 'w18', 'w26', 'w30', 'premium'];
 
   const now = Date.now();
   DEFAULT_PRODUCTS.forEach((p, i) => {
@@ -310,6 +323,7 @@ const DEFAULT_PRODUCTS = [
     p.isNew         = nuevo.includes(p.id);
     p.originalPrice = ofertas[p.id] || null;
     p.createdAt     = now - (DEFAULT_PRODUCTS.length - i) * 86400000; // simular fechas escalonadas
+    p.quality       = p.title.startsWith('Short') ? 'set' : calidades[i % calidades.length];
   });
 })();
 

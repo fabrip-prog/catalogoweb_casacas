@@ -192,6 +192,7 @@
             <h4 class="row-title line-clamp-2">${p.title}</h4>
             <p class="row-meta">
               ${team ? `<span class="inline-flex items-center gap-1.5">${teamMark(team)}${team.name}</span>` : ''}
+              ${p.quality ? `<span class="tag">${qualityLabel(p.quality)}</span>` : ''}
               ${p.featured ? '<span class="tag">Destacado</span>' : ''}
               ${p.isNew ? '<span class="tag">Nuevo</span>' : ''}
               ${p.originalPrice && p.originalPrice > p.price
@@ -342,6 +343,12 @@
     }
     leagueSelect?.removeEventListener('change', updateProductTeamSelect);
     leagueSelect?.addEventListener('change', updateProductTeamSelect);
+
+    const qualitySelect = $('#formQuality');
+    if (qualitySelect && !qualitySelect.options.length) {
+      qualitySelect.innerHTML = `<option value="">Sin especificar</option>` +
+        QUALITIES.map(q => `<option value="${q.id}">${q.label}</option>`).join('');
+    }
   }
 
   function updateProductTeamSelect() {
@@ -391,6 +398,7 @@
     $('#formFeatured').checked = !!product.featured;
     $('#formIsNew').checked = !!product.isNew;
     $('#formLeague').value = product.leagueId;
+    $('#formQuality').value = product.quality || '';
     updateProductTeamSelect();
     setTimeout(() => { $('#formTeam').value = product.teamId; }, 50);
     formImages = [...(product.images || [])];
@@ -478,10 +486,11 @@
     const featured = $('#formFeatured')?.checked || false;
     const isNew = $('#formIsNew')?.checked || false;
     const originalPrice = parseInt($('#formOriginalPrice').value) || null;
+    const quality = $('#formQuality')?.value || null;
 
     const productData = {
       title, description, price, leagueId, teamId, images, sizes,
-      featured, isNew, originalPrice,
+      featured, isNew, originalPrice, quality,
       createdAt: editingProductId ? (store.getProductById(editingProductId)?.createdAt || Date.now()) : Date.now(),
     };
 
