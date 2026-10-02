@@ -12,6 +12,10 @@
   let editingLeagueId = null;
   let editingTeamId = null;
   let currentTab = 'products';
+  let formImages = [];                       // fotos del producto en el formulario; la primera es la principal
+  let imagesProcessing = Promise.resolve();  // fotos que se están achicando
+  let formLeagueLogo = null;
+  let formTeamLogo = null;
 
   document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
@@ -120,20 +124,20 @@
 
     let html = '';
     if (outOfStock.length > 0) {
-      html += `<div class="bg-red-50 border border-red-200 rounded-xl p-3">
-        <p class="text-red-700 font-semibold text-sm">⚠️ ${outOfStock.length} producto(s) sin stock</p>
-        <ul class="mt-1 text-xs text-red-600">${outOfStock.slice(0, 5).map(p => `<li class="truncate">• ${p.title}</li>`).join('')}</ul>
+      html += `<div class="alert alert-low">
+        <p class="alert-title low">${outOfStock.length} producto(s) sin stock</p>
+        <ul class="alert-list">${outOfStock.slice(0, 5).map(p => `<li class="truncate">• ${p.title}</li>`).join('')}</ul>
       </div>`;
     }
     if (lowStock.length > 0) {
-      html += `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 ${outOfStock.length ? 'mt-2' : ''}">
-        <p class="text-amber-700 font-semibold text-sm">📦 ${lowStock.length} producto(s) con stock bajo</p>
-        <ul class="mt-1 text-xs text-amber-600">${lowStock.slice(0, 5).map(p => `<li class="truncate">• ${p.title}</li>`).join('')}</ul>
+      html += `<div class="alert ${outOfStock.length ? 'mt-2' : ''}">
+        <p class="alert-title low">${lowStock.length} producto(s) con stock bajo</p>
+        <ul class="alert-list">${lowStock.slice(0, 5).map(p => `<li class="truncate">• ${p.title}</li>`).join('')}</ul>
       </div>`;
     }
     if (!html) {
-      html = `<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
-        <p class="text-emerald-700 font-semibold text-sm">✅ Todo el inventario en orden</p>
+      html = `<div class="alert">
+        <p class="alert-title">Todo el inventario en orden</p>
       </div>`;
     }
     alertsEl.innerHTML = html;
@@ -169,47 +173,156 @@
     }
 
     if (products.length === 0) {
-      container.innerHTML = `<div class="text-center py-12 text-gray-400"><p class="text-4xl mb-2">📦</p><p class="font-semibold">No se encontraron productos</p></div>`;
+      container.innerHTML = `<div class="empty"><p class="empty-title">No se encontraron productos</p></div>`;
       return;
     }
 
     container.innerHTML = products.map(p => {
       const team = store.getTeamById(p.teamId);
       const totalStock = Object.values(p.sizes).reduce((s, v) => s + v, 0);
-      const stockColor = totalStock === 0 ? 'text-red-500' : totalStock <= 5 ? 'text-amber-500' : 'text-emerald-500';
+      const stockColor = totalStock <= 5 ? 'low' : '';
 
       return `
-        <div class="admin-row bg-white rounded-xl border border-gray-200 p-4 flex flex-col sm:flex-row gap-3 items-start">
-          <img src="${p.images[0]}" alt="${p.title}" class="w-16 h-20 object-cover rounded-lg flex-shrink-0 bg-gray-100"
-               onerror="this.src='https://placehold.co/64x80/e2e8f0/94a3b8?text=?'">
-          <div class="flex-1 min-w-0">
-            <h4 class="font-bold text-sm text-gray-800 line-clamp-2">${p.title}</h4>
-            <div class="flex flex-wrap items-center gap-2 mt-1">
-              ${team ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:${team.color}">${team.name}</span>` : ''}
-              ${p.featured ? '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400 text-yellow-900">⭐</span>' : ''}
-              ${p.isNew ? '<span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">🆕</span>' : ''}
-              ${p.originalPrice && p.originalPrice > p.price
-                ? `<span class="text-xs text-red-500 font-bold">-${Math.round((1 - p.price/p.originalPrice)*100)}%</span>
-                   <span class="text-xs text-gray-400 line-through">${CONFIG.currency}${p.originalPrice.toLocaleString('es-AR')}</span>
-                   <span class="text-xs text-red-600 font-bold">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>`
-                : `<span class="text-xs text-gray-500">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>`
-              }
-            </div>
-            <div class="flex flex-wrap gap-1.5 mt-2">
-              ${Object.entries(p.sizes).map(([size, stock]) => `
-                <span class="text-[10px] px-2 py-0.5 rounded-full border
-                  ${stock === 0 ? 'bg-red-50 border-red-200 text-red-500' : stock <= 3 ? 'bg-amber-50 border-amber-200 text-amber-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}">
-                  ${size}: ${stock}</span>`).join('')}
-            </div>
-            <p class="text-xs mt-1.5 font-semibold ${stockColor}">Stock total: ${totalStock}</p>
+        <div class="admin-row">
+          <div class="th">
+            <img src="${p.images[0]}" alt="${p.title}"
+                 onerror="this.src='https://placehold.co/64x80/e7e7e3/6b6b66?text=?'">
           </div>
-          <div class="flex sm:flex-col gap-2 flex-shrink-0 self-start">
-            <button onclick="editProduct('${p.id}')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-colors">✏️ Editar</button>
-            <button onclick="deleteProduct('${p.id}', '${p.title.replace(/'/g, "\\'")}')" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-colors">🗑️ Eliminar</button>
+          <div class="row-body">
+            <h4 class="row-title line-clamp-2">${p.title}</h4>
+            <p class="row-meta">
+              ${team ? `<span class="inline-flex items-center gap-1.5">${teamMark(team)}${team.name}</span>` : ''}
+              ${p.featured ? '<span class="tag">Destacado</span>' : ''}
+              ${p.isNew ? '<span class="tag">Nuevo</span>' : ''}
+              ${p.originalPrice && p.originalPrice > p.price
+                ? `<span class="price"><span class="low font-medium">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>
+                   <s>${CONFIG.currency}${p.originalPrice.toLocaleString('es-AR')}</s>
+                   <span class="tag low">-${Math.round((1 - p.price/p.originalPrice)*100)}%</span></span>`
+                : `<span class="price text-ink-2">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>`
+              }
+            </p>
+            <div class="avail">
+              ${Object.entries(p.sizes).map(([size, stock]) => `
+                <i class="${stock === 0 ? 'off' : stock <= 3 ? 'low' : ''}">${size}: ${stock}</i>`).join('')}
+            </div>
+            <p class="row-stock ${stockColor}">Stock total: ${totalStock}</p>
+          </div>
+          <div class="row-actions">
+            <button onclick="editProduct('${p.id}')" class="text-btn">Editar</button>
+            <button onclick="deleteProduct('${p.id}', '${p.title.replace(/'/g, "\\'")}')" class="text-btn text-btn-low">Eliminar</button>
           </div>
         </div>`;
     }).join('');
   }
+
+  // ══════════════════════════════════════════════════════════════
+  //  IMÁGENES – Fotos de productos y logos desde la galería o el dispositivo
+  // ══════════════════════════════════════════════════════════════
+  // Se achican en el navegador antes de guardarlas: el catálogo vive en
+  // localStorage y ese espacio es limitado (unos 5 MB por sitio).
+  function imageFileToDataUrl(file, maxSide, quality) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        // WebP conserva la transparencia de fotos recortadas y logos; si el navegador no lo genera, PNG o JPEG
+        let data = canvas.toDataURL('image/webp', quality);
+        if (!data.startsWith('data:image/webp')) {
+          data = file.type === 'image/png' ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', quality);
+        }
+        resolve(data);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('No se pudo leer la imagen'));
+      };
+      img.src = url;
+    });
+  }
+
+  const isPlaceholder = (src) => src.startsWith('https://placehold.co/');
+
+  function renderImagePreview() {
+    const box = $('#formImagesPreview');
+    if (!box) return;
+    box.innerHTML = formImages.length
+      ? formImages.map((src, i) => `
+          <div class="photo">
+            <div class="th"><img src="${src}" alt="Foto ${i + 1}"></div>
+            <div class="photo-foot">
+              <span class="tag">${i === 0 ? 'Principal' : i + 1}</span>
+              <button type="button" class="link-btn" data-remove-photo="${i}">Quitar</button>
+            </div>
+          </div>`).join('')
+      : `<p class="field-hint">Sin fotos. Si no agregás ninguna, se usa una imagen con el color del equipo.</p>`;
+  }
+
+  function renderLogoPreview(kind) {
+    const logo = kind === 'league' ? formLeagueLogo : formTeamLogo;
+    const box = $(`#${kind}LogoPreview`);
+    if (box) box.innerHTML = logo ? `<img src="${logo}" alt="Logo">` : '—';
+    $(`#${kind}LogoRemove`)?.classList.toggle('hidden', !logo);
+  }
+
+  // localStorage tiene un límite: si una imagen no entra se avisa en vez de fallar en silencio
+  function notifySaveError(err) {
+    console.error(err);
+    showAdminNotif(err && /quota/i.test(err.name)
+      ? 'No hay más espacio en este navegador para guardar imágenes. Quitá alguna foto o usá imágenes más livianas.'
+      : 'No se pudo guardar. Probá de nuevo.', 'error');
+  }
+
+  $('#formImageUpload')?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    imagesProcessing = imagesProcessing.then(async () => {
+      const added = [];
+      for (const file of files) {
+        try {
+          added.push(await imageFileToDataUrl(file, 900, 0.8));
+        } catch (err) {
+          showAdminNotif(`No se pudo leer "${file.name}". Probá con una foto JPG o PNG.`, 'error');
+        }
+      }
+      if (!added.length) return;
+      // Las imágenes de ejemplo se reemplazan apenas hay una foto real
+      formImages = formImages.filter(src => !isPlaceholder(src)).concat(added);
+      renderImagePreview();
+    });
+  });
+
+  $('#formImagesPreview')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove-photo]');
+    if (!btn) return;
+    formImages.splice(Number(btn.dataset.removePhoto), 1);
+    renderImagePreview();
+  });
+
+  ['league', 'team'].forEach((kind) => {
+    $(`#${kind}LogoInput`)?.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      try {
+        const logo = await imageFileToDataUrl(file, 160, 0.9);
+        if (kind === 'league') formLeagueLogo = logo; else formTeamLogo = logo;
+        renderLogoPreview(kind);
+      } catch (err) {
+        showAdminNotif(`No se pudo leer "${file.name}". Probá con una imagen JPG o PNG.`, 'error');
+      }
+    });
+    $(`#${kind}LogoRemove`)?.addEventListener('click', () => {
+      if (kind === 'league') formLeagueLogo = null; else formTeamLogo = null;
+      renderLogoPreview(kind);
+    });
+  });
 
   // ══════════════════════════════════════════════════════════════
   //  PRODUCTOS – Form
@@ -250,9 +363,11 @@
     form.classList.remove('hidden');
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (mode === 'add') {
-      $('#formTitleLabel').textContent = '➕ Nuevo Producto';
+      $('#formTitleLabel').textContent = 'Nuevo producto';
       $('#productFormEl').reset();
       editingProductId = null;
+      formImages = [];
+      renderImagePreview();
       updateProductTeamSelect();
     }
   };
@@ -267,7 +382,7 @@
     if (!product) return;
     editingProductId = productId;
     showProductForm('edit');
-    $('#formTitleLabel').textContent = '✏️ Editar Producto';
+    $('#formTitleLabel').textContent = 'Editar producto';
 
     $('#formProductTitle').value = product.title;
     $('#formDescription').value = product.description;
@@ -278,7 +393,8 @@
     $('#formLeague').value = product.leagueId;
     updateProductTeamSelect();
     setTimeout(() => { $('#formTeam').value = product.teamId; }, 50);
-    $('#formImages').value = product.images.join('\n');
+    formImages = [...(product.images || [])];
+    renderImagePreview();
     $('#formStockS').value = product.sizes.S || 0;
     $('#formStockM').value = product.sizes.M || 0;
     $('#formStockL').value = product.sizes.L || 0;
@@ -286,13 +402,21 @@
     $('#formStockXXL').value = product.sizes.XXL || 0;
   };
 
-  window.deleteProduct = function (productId, title) {
-    if (confirm(`¿Eliminar "${title}"?\n\nEsta acción no se puede deshacer.`)) {
-      store.deleteProduct(productId);
-      renderProductList();
-      renderStats();
-      showAdminNotif('Producto eliminado', 'success');
-    }
+  window.deleteProduct = async function (productId, title) {
+    const product = store.getProductById(productId);
+    const stock = product ? Object.values(product.sizes).reduce((s, v) => s + v, 0) : 0;
+    const ok = await confirmDialog({
+      kicker: 'Eliminar producto',
+      title: product?.title || title,
+      message: `${stock > 0 ? `Tiene ${stock} unidad${stock !== 1 ? 'es' : ''} en stock. ` : ''}Se borra del catálogo y deja de verse en la tienda.`,
+      media: product?.images?.[0] ? `<img src="${product.images[0]}" alt="">` : '',
+      confirmLabel: 'Eliminar producto',
+    });
+    if (!ok) return;
+    store.deleteProduct(productId);
+    renderProductList();
+    renderStats();
+    showAdminNotif('Producto eliminado', 'success');
   };
 
   window.handleProductSubmit = async function (e) {
@@ -302,27 +426,28 @@
     const price = parseInt($('#formPrice').value) || 0;
     const leagueId = $('#formLeague').value;
     const teamId = $('#formTeam').value;
-    const imagesRaw = $('#formImages').value.trim();
-    const images = imagesRaw ? imagesRaw.split('\n').map(s => s.trim()).filter(Boolean) : [];
-
     if (!title || !leagueId || !teamId || price <= 0) {
       showAdminNotif('Completá todos los campos obligatorios', 'error');
       return;
     }
 
-    const fileInput = $('#formImageUpload');
-    if (fileInput && fileInput.files.length > 0 && typeof storage !== 'undefined') {
+    await imagesProcessing;
+    const images = [...formImages];
+
+    // Con Firebase Storage configurado, las fotos nuevas se suben y se guarda su URL
+    if (typeof storage !== 'undefined' && images.some(src => src.startsWith('data:'))) {
       const btn = $('#productFormEl button[type="submit"]');
       const originalText = btn.innerHTML;
-      btn.innerHTML = '⏳ Subiendo fotos...';
+      btn.innerHTML = 'Subiendo fotos…';
       btn.disabled = true;
 
       try {
-        for (const file of fileInput.files) {
-          const ref = storage.ref(`productos/${Date.now()}_${file.name}`);
-          await ref.put(file);
-          const url = await ref.getDownloadURL();
-          images.push(url);
+        for (let i = 0; i < images.length; i++) {
+          if (!images[i].startsWith('data:')) continue;
+          const blob = await (await fetch(images[i])).blob();
+          const ref = storage.ref(`productos/${Date.now()}_${i}.${blob.type.split('/')[1]}`);
+          await ref.put(blob);
+          images[i] = await ref.getDownloadURL();
         }
       } catch (err) {
         console.error("Error al subir imagen:", err);
@@ -360,12 +485,17 @@
       createdAt: editingProductId ? (store.getProductById(editingProductId)?.createdAt || Date.now()) : Date.now(),
     };
 
-    if (editingProductId) {
-      await store.updateProduct(editingProductId, productData);
-      showAdminNotif('Producto actualizado', 'success');
-    } else {
-      await store.addProduct(productData);
-      showAdminNotif('Producto creado', 'success');
+    try {
+      if (editingProductId) {
+        await store.updateProduct(editingProductId, productData);
+        showAdminNotif('Producto actualizado', 'success');
+      } else {
+        await store.addProduct(productData);
+        showAdminNotif('Producto creado', 'success');
+      }
+    } catch (err) {
+      notifySaveError(err);
+      return;
     }
 
     hideProductForm();
@@ -383,7 +513,7 @@
     const leagues = store.getLeagues();
 
     if (leagues.length === 0) {
-      container.innerHTML = `<div class="text-center py-12 text-gray-400"><p class="text-4xl mb-2">🏆</p><p class="font-semibold">No hay ligas creadas</p></div>`;
+      container.innerHTML = `<div class="empty"><p class="empty-title">No hay ligas creadas</p></div>`;
       return;
     }
 
@@ -392,19 +522,19 @@
       const productCount = store.getProductsByLeague(l.id).length;
 
       return `
-        <div class="admin-row bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-          <span class="text-3xl flex-shrink-0">${l.icon}</span>
-          <div class="flex-1 min-w-0">
-            <h4 class="font-bold text-sm text-gray-800">${l.name}</h4>
-            <div class="flex gap-3 mt-1 text-xs text-gray-500">
-              <span>⚽ ${teamCount} equipo${teamCount !== 1 ? 's' : ''}</span>
-              <span>👕 ${productCount} producto${productCount !== 1 ? 's' : ''}</span>
-              <span class="text-gray-400">Orden: ${l.order}</span>
-            </div>
+        <div class="admin-row items-center">
+          <span class="row-icon">${leagueMark(l)}</span>
+          <div class="row-body">
+            <h4 class="row-title">${l.name}</h4>
+            <p class="row-meta">
+              <span>${teamCount} equipo${teamCount !== 1 ? 's' : ''}</span>
+              <span>${productCount} producto${productCount !== 1 ? 's' : ''}</span>
+              <span>Orden: ${l.order}</span>
+            </p>
           </div>
-          <div class="flex gap-2 flex-shrink-0">
-            <button onclick="editLeague('${l.id}')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-colors">✏️</button>
-            <button onclick="deleteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}')" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-colors">🗑️</button>
+          <div class="row-actions">
+            <button onclick="editLeague('${l.id}')" class="text-btn">Editar</button>
+            <button onclick="deleteLeague('${l.id}', '${l.name.replace(/'/g, "\\'")}')" class="text-btn text-btn-low">Eliminar</button>
           </div>
         </div>`;
     }).join('');
@@ -417,9 +547,11 @@
     form.classList.remove('hidden');
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (mode === 'add') {
-      $('#leagueFormTitle').textContent = '➕ Nueva Liga';
+      $('#leagueFormTitle').textContent = 'Nueva liga';
       $('#leagueFormEl').reset();
       editingLeagueId = null;
+      formLeagueLogo = null;
+      renderLogoPreview('league');
     }
   };
 
@@ -433,29 +565,35 @@
     if (!league) return;
     editingLeagueId = leagueId;
     showLeagueForm('edit');
-    $('#leagueFormTitle').textContent = '✏️ Editar Liga';
+    $('#leagueFormTitle').textContent = 'Editar liga';
     $('#formLeagueName').value = league.name;
     $('#formLeagueIcon').value = league.icon;
     $('#formLeagueOrder').value = league.order;
+    formLeagueLogo = league.logo || null;
+    renderLogoPreview('league');
   };
 
-  window.deleteLeague = function (leagueId, name) {
+  window.deleteLeague = async function (leagueId, name) {
+    const league = store.getLeagueById(leagueId);
     const teamCount = store.getTeamsByLeague(leagueId).length;
     const productCount = store.getProductsByLeague(leagueId).length;
-    let msg = `¿Eliminar la liga "${name}"?\n`;
-    if (teamCount > 0 || productCount > 0) {
-      msg += `\n⚠️ ATENCIÓN: También se eliminarán:\n`;
-      if (teamCount > 0) msg += `   • ${teamCount} equipo(s)\n`;
-      if (productCount > 0) msg += `   • ${productCount} producto(s)\n`;
-    }
-    msg += `\nEsta acción no se puede deshacer.`;
+    const cascade = [];
+    if (teamCount > 0) cascade.push(`${teamCount} equipo${teamCount !== 1 ? 's' : ''}`);
+    if (productCount > 0) cascade.push(`${productCount} producto${productCount !== 1 ? 's' : ''}`);
 
-    if (confirm(msg)) {
-      store.deleteLeague(leagueId);
-      renderLeagueList();
-      renderStats();
-      showAdminNotif(`Liga "${name}" eliminada`, 'success');
-    }
+    const ok = await confirmDialog({
+      kicker: 'Eliminar liga',
+      title: league?.name || name,
+      message: cascade.length ? 'Junto con la liga se borran todos sus equipos y productos.' : 'La liga no tiene equipos ni productos cargados.',
+      cascade,
+      media: league ? leagueMark(league) : '',
+      confirmLabel: 'Eliminar liga',
+    });
+    if (!ok) return;
+    store.deleteLeague(leagueId);
+    renderLeagueList();
+    renderStats();
+    showAdminNotif(`Liga "${name}" eliminada`, 'success');
   };
 
   window.handleLeagueSubmit = function (e) {
@@ -469,12 +607,19 @@
       return;
     }
 
-    if (editingLeagueId) {
-      store.updateLeague(editingLeagueId, { name, icon, order });
-      showAdminNotif('Liga actualizada', 'success');
-    } else {
-      store.addLeague({ name, icon, order });
-      showAdminNotif('Liga creada', 'success');
+    const logo = formLeagueLogo;
+
+    try {
+      if (editingLeagueId) {
+        store.updateLeague(editingLeagueId, { name, icon, order, logo });
+        showAdminNotif('Liga actualizada', 'success');
+      } else {
+        store.addLeague({ name, icon, order, logo });
+        showAdminNotif('Liga creada', 'success');
+      }
+    } catch (err) {
+      notifySaveError(err);
+      return;
     }
 
     hideLeagueForm();
@@ -500,7 +645,7 @@
     if (teamLeagueFilter) teams = teams.filter(t => t.leagueId === teamLeagueFilter);
 
     if (teams.length === 0) {
-      container.innerHTML = `<div class="text-center py-12 text-gray-400"><p class="text-4xl mb-2">⚽</p><p class="font-semibold">No se encontraron equipos</p></div>`;
+      container.innerHTML = `<div class="empty"><p class="empty-title">No se encontraron equipos</p></div>`;
       return;
     }
 
@@ -509,23 +654,21 @@
       const productCount = store.getProductsByTeam(t.id).length;
 
       return `
-        <div class="admin-row bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-          <span class="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-sm" style="background:${t.color}">
-            ${t.name.substring(0, 2).toUpperCase()}
-          </span>
-          <div class="flex-1 min-w-0">
-            <h4 class="font-bold text-sm text-gray-800">${t.name}</h4>
-            <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-gray-500">
-              ${league ? `<span>${league.icon} ${league.name}</span>` : '<span class="text-red-400">⚠ Sin liga</span>'}
-              <span>•</span>
-              <span>👕 ${productCount} producto${productCount !== 1 ? 's' : ''}</span>
-              <span>•</span>
-              <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full inline-block" style="background:${t.color}"></span>${t.color}</span>
-            </div>
+        <div class="admin-row items-center">
+          ${t.logo
+            ? `<span class="swatch swatch-logo"><img src="${t.logo}" alt=""></span>`
+            : `<span class="swatch" style="background:${t.color}">${t.name.substring(0, 2).toUpperCase()}</span>`}
+          <div class="row-body">
+            <h4 class="row-title">${t.name}</h4>
+            <p class="row-meta">
+              ${league ? `<span>${leagueMark(league)} ${league.name}</span>` : '<span class="low">Sin liga</span>'}
+              <span>${productCount} producto${productCount !== 1 ? 's' : ''}</span>
+              <span class="count">${t.color}</span>
+            </p>
           </div>
-          <div class="flex gap-2 flex-shrink-0">
-            <button onclick="editTeam('${t.id}')" class="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold transition-colors">✏️</button>
-            <button onclick="deleteTeam('${t.id}', '${t.name.replace(/'/g, "\\'")}')" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-colors">🗑️</button>
+          <div class="row-actions">
+            <button onclick="editTeam('${t.id}')" class="text-btn">Editar</button>
+            <button onclick="deleteTeam('${t.id}', '${t.name.replace(/'/g, "\\'")}')" class="text-btn text-btn-low">Eliminar</button>
           </div>
         </div>`;
     }).join('');
@@ -554,10 +697,12 @@
     form.scrollIntoView({ behavior: 'smooth', block: 'start' });
     populateTeamFormLeagueSelect();
     if (mode === 'add') {
-      $('#teamFormTitle').textContent = '➕ Nuevo Equipo';
+      $('#teamFormTitle').textContent = 'Nuevo equipo';
       $('#teamFormEl').reset();
       $('#formTeamColor').value = '#10b981';
       editingTeamId = null;
+      formTeamLogo = null;
+      renderLogoPreview('team');
     }
   };
 
@@ -571,26 +716,34 @@
     if (!team) return;
     editingTeamId = teamId;
     showTeamForm('edit');
-    $('#teamFormTitle').textContent = '✏️ Editar Equipo';
+    $('#teamFormTitle').textContent = 'Editar equipo';
     $('#formTeamName').value = team.name;
     $('#formTeamLeague').value = team.leagueId;
     $('#formTeamColor').value = team.color;
+    formTeamLogo = team.logo || null;
+    renderLogoPreview('team');
   };
 
-  window.deleteTeam = function (teamId, name) {
+  window.deleteTeam = async function (teamId, name) {
+    const team = store.getTeamById(teamId);
     const productCount = store.getProductsByTeam(teamId).length;
-    let msg = `¿Eliminar el equipo "${name}"?\n`;
-    if (productCount > 0) {
-      msg += `\n⚠️ ATENCIÓN: También se eliminarán ${productCount} producto(s) asociados.\n`;
-    }
-    msg += `\nEsta acción no se puede deshacer.`;
+    const media = !team ? ''
+      : team.logo ? `<img src="${team.logo}" alt="">`
+      : `<span class="swatch" style="background:${team.color}">${team.name.substring(0, 2).toUpperCase()}</span>`;
 
-    if (confirm(msg)) {
-      store.deleteTeam(teamId);
-      renderTeamList();
-      renderStats();
-      showAdminNotif(`Equipo "${name}" eliminado`, 'success');
-    }
+    const ok = await confirmDialog({
+      kicker: 'Eliminar equipo',
+      title: team?.name || name,
+      message: productCount > 0 ? 'Junto con el equipo se borran todos sus productos.' : 'El equipo no tiene productos cargados.',
+      cascade: productCount > 0 ? [`${productCount} producto${productCount !== 1 ? 's' : ''}`] : [],
+      media,
+      confirmLabel: 'Eliminar equipo',
+    });
+    if (!ok) return;
+    store.deleteTeam(teamId);
+    renderTeamList();
+    renderStats();
+    showAdminNotif(`Equipo "${name}" eliminado`, 'success');
   };
 
   window.handleTeamSubmit = function (e) {
@@ -604,12 +757,19 @@
       return;
     }
 
-    if (editingTeamId) {
-      store.updateTeam(editingTeamId, { name, leagueId, color });
-      showAdminNotif('Equipo actualizado', 'success');
-    } else {
-      store.addTeam({ name, leagueId, color });
-      showAdminNotif('Equipo creado', 'success');
+    const logo = formTeamLogo;
+
+    try {
+      if (editingTeamId) {
+        store.updateTeam(editingTeamId, { name, leagueId, color, logo });
+        showAdminNotif('Equipo actualizado', 'success');
+      } else {
+        store.addTeam({ name, leagueId, color, logo });
+        showAdminNotif('Equipo creado', 'success');
+      }
+    } catch (err) {
+      notifySaveError(err);
+      return;
     }
 
     hideTeamForm();
@@ -637,7 +797,7 @@
     
     const btn = $('#settingsForm button[type="submit"]');
     const ogText = btn.innerHTML;
-    btn.innerHTML = '⏳ Guardando...';
+    btn.innerHTML = 'Guardando…';
     btn.disabled = true;
 
     try {
@@ -655,13 +815,18 @@
   // ══════════════════════════════════════════════════════════════
   //  Reset Data
   // ══════════════════════════════════════════════════════════════
-  window.resetAllData = function () {
-    if (confirm('⚠️ ¿Resetear TODOS los datos (ligas, equipos y productos) a los valores de ejemplo?\n\nSe perderán todos los cambios realizados.')) {
-      store.resetData();
-      renderStats();
-      switchTab(currentTab);
-      showAdminNotif('Datos reseteados correctamente', 'info');
-    }
+  window.resetAllData = async function () {
+    const ok = await confirmDialog({
+      kicker: 'Restablecer datos',
+      title: '¿Volver a los datos de ejemplo?',
+      message: 'Se reemplazan todas las ligas, equipos y productos por los de ejemplo, y se pierden los cambios que hiciste.',
+      confirmLabel: 'Restablecer',
+    });
+    if (!ok) return;
+    store.resetData();
+    renderStats();
+    switchTab(currentTab);
+    showAdminNotif('Datos reseteados correctamente', 'info');
   };
 
   // ══════════════════════════════════════════════════════════════
@@ -671,11 +836,11 @@
     const container = $('#adminNotif');
     if (!container) return;
 
-    const colors = { success: 'bg-emerald-500', error: 'bg-red-500', info: 'bg-blue-500' };
+    const variants = { success: 'toast', error: 'toast toast-error', info: 'toast' };
 
     container.innerHTML = `
-      <div class="${colors[type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 notif-enter">
-        <span class="text-sm font-medium">${message}</span>
+      <div class="${variants[type]} notif-enter">
+        <span>${message}</span>
       </div>`;
 
     setTimeout(() => {

@@ -5,85 +5,79 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin – CasacasStore</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
-    }
-  </script>
+  <script src="js/tailwind-config.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
-  <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="site min-h-screen">
 
   <!-- Notifications -->
-  <div id="adminNotif" class="fixed top-4 right-4 z-50"></div>
+  <div id="adminNotif" class="toasts"></div>
 
   <!-- ═══════════ LOGIN ═══════════ -->
   <section id="loginSection" class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-sm">
-      <div class="text-center mb-8">
-        <p class="text-5xl mb-3">🔐</p>
-        <h1 class="text-2xl font-extrabold text-gray-800">Panel de Administración</h1>
-        <p class="text-gray-500 text-sm mt-1">CasacasStore ⚽</p>
+      <div class="mb-8">
+        <p class="brand">Casacas <span>Store</span></p>
+        <h1 class="login-title">Panel de administración</h1>
       </div>
-      <form onsubmit="handleLogin(event)" class="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-        <div id="loginError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
-          ❌ Usuario o contraseña incorrectos
+      <form onsubmit="handleLogin(event)" class="panel flex flex-col gap-4">
+        <div id="loginError" class="alert alert-low hidden">
+          <p class="alert-title low">Usuario o contraseña incorrectos</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Usuario</label>
+          <label class="field-label" for="loginUser">Usuario</label>
           <input type="text" id="loginUser" required autocomplete="username" placeholder="Ingresá tu usuario"
-                 class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                 class="field">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Contraseña</label>
+          <label class="field-label" for="loginPass">Contraseña</label>
           <input type="password" id="loginPass" required autocomplete="current-password" placeholder="Ingresá tu contraseña"
-                 class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                 class="field">
         </div>
-        <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors">
-          Iniciar Sesión
+        <button type="submit" class="btn w-full">
+          Iniciar sesión
         </button>
-        <a href="index.html" class="block text-center text-gray-500 hover:text-emerald-600 text-sm mt-3 transition-colors">← Volver a la tienda</a>
+        <a href="index.html" class="link-muted self-center text-sm">← Volver a la tienda</a>
       </form>
-      </div>
+    </div>
   </section>
 
   <!-- ═══════════ DASHBOARD ═══════════ -->
   <section id="dashboardSection" class="hidden">
     <!-- Header -->
-    <header class="bg-gray-900 text-white sticky top-0 z-30 shadow-lg">
-      <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <a href="index.html" class="text-gray-400 hover:text-white transition-colors text-sm">← Tienda</a>
-          <span class="text-gray-600">|</span>
-          <h1 class="font-bold text-sm sm:text-base">⚙️ Panel Admin</h1>
+    <header class="site-header">
+      <div class="admin-wrap header-row">
+        <p class="brand">Casacas <span>Store</span></p>
+        <span class="label max-sm:hidden">Panel admin</span>
+        <div class="ml-auto flex items-center gap-5">
+          <a href="index.html" class="text-btn">← Tienda</a>
+          <button onclick="handleLogout()" class="text-btn">Cerrar sesión</button>
         </div>
-        <button onclick="handleLogout()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors">Cerrar sesión</button>
       </div>
     </header>
 
-    <div class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <div class="admin-wrap admin-main">
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow" onclick="switchTab('products')">
-          <p class="text-xs text-gray-500 font-medium">📦 Productos</p>
-          <p id="statProducts" class="text-2xl font-extrabold text-gray-800 mt-1">0</p>
-        </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow" onclick="switchTab('leagues')">
-          <p class="text-xs text-gray-500 font-medium">🏆 Ligas</p>
-          <p id="statLeagues" class="text-2xl font-extrabold text-gray-800 mt-1">0</p>
-        </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-shadow" onclick="switchTab('teams')">
-          <p class="text-xs text-gray-500 font-medium">⚽ Equipos</p>
-          <p id="statTeams" class="text-2xl font-extrabold text-gray-800 mt-1">0</p>
-        </div>
-        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <p class="text-xs text-gray-500 font-medium">👕 Stock Total</p>
-          <p id="statStock" class="text-2xl font-extrabold text-emerald-600 mt-1">0</p>
+      <div class="stats">
+        <button type="button" class="stat is-link" onclick="switchTab('products')">
+          <span class="label">Productos</span>
+          <span id="statProducts" class="stat-num">0</span>
+        </button>
+        <button type="button" class="stat is-link" onclick="switchTab('leagues')">
+          <span class="label">Ligas</span>
+          <span id="statLeagues" class="stat-num">0</span>
+        </button>
+        <button type="button" class="stat is-link" onclick="switchTab('teams')">
+          <span class="label">Equipos</span>
+          <span id="statTeams" class="stat-num">0</span>
+        </button>
+        <div class="stat">
+          <span class="label">Stock total</span>
+          <span id="statStock" class="stat-num">0</span>
         </div>
       </div>
 
@@ -91,26 +85,25 @@
       <div id="stockAlerts"></div>
 
       <!-- ═══ TAB NAVIGATION ═══ -->
-      <div class="flex items-center gap-2 overflow-x-auto pb-1">
+      <!-- admin.js alterna bg-emerald-500/text-white y bg-gray-200/text-gray-700 para marcar la pestaña activa -->
+      <div class="admin-tabs">
         <button data-tab-btn="products" onclick="switchTab('products')"
-          class="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors bg-emerald-500 text-white">
-          📦 Productos
+          class="admin-tab bg-emerald-500 text-white">
+          Productos
         </button>
         <button data-tab-btn="leagues" onclick="switchTab('leagues')"
-          class="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors bg-gray-200 text-gray-700">
-          🏆 Ligas
+          class="admin-tab bg-gray-200 text-gray-700">
+          Ligas
         </button>
         <button data-tab-btn="teams" onclick="switchTab('teams')"
-          class="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors bg-gray-200 text-gray-700">
-          ⚽ Equipos
+          class="admin-tab bg-gray-200 text-gray-700">
+          Equipos
         </button>
         <button data-tab-btn="settings" onclick="switchTab('settings')"
-          class="flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors bg-gray-200 text-gray-700">
-          ⚙️ Ajustes
+          class="admin-tab bg-gray-200 text-gray-700">
+          Ajustes
         </button>
-        <div class="ml-auto flex-shrink-0">
-          <button onclick="resetAllData()" class="px-3 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl transition-colors text-sm font-medium" title="Resetear datos de ejemplo">🔄 Reset</button>
-        </div>
+        <button onclick="resetAllData()" class="text-btn ml-auto flex-none" title="Resetear datos de ejemplo">Reset</button>
       </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
@@ -118,132 +111,119 @@
       <!-- ═══════════════════════════════════════════════════════ -->
       <div data-tab-content="products">
         <!-- Actions bar -->
-        <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-800">📦 Gestión de Productos</h2>
-          <button onclick="showProductForm('add')"
-            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center gap-1.5">
-            ➕ Nuevo Producto
+        <div class="tab-head">
+          <h2 class="page-title">Gestión de productos</h2>
+          <button onclick="showProductForm('add')" class="btn btn-sm">
+            Nuevo producto
           </button>
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-col sm:flex-row gap-3 mb-4">
-          <div class="relative flex-1">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-            <input type="text" placeholder="Buscar productos..." oninput="handleAdminSearch(this.value)"
-                   class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
-          </div>
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+          <input type="text" placeholder="Buscar productos..." oninput="handleAdminSearch(this.value)"
+                 class="field flex-1">
           <select id="filterLeague" onchange="handleAdminLeagueFilter(this.value)"
-                  class="px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white">
+                  class="field sm:w-60">
             <option value="">Todas las ligas</option>
           </select>
         </div>
 
         <!-- Product Form (Hidden) -->
-        <div id="productForm" class="hidden mb-4">
+        <div id="productForm" class="hidden mb-5">
           <form id="productFormEl" onsubmit="handleProductSubmit(event)"
-                class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 id="formTitleLabel" class="text-lg font-bold text-gray-800">➕ Nuevo Producto</h3>
-              <button type="button" onclick="hideProductForm()" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
+                class="panel flex flex-col gap-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 id="formTitleLabel" class="panel-title">Nuevo producto</h3>
+              <button type="button" onclick="hideProductForm()" class="text-btn">Cerrar</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Título del producto *</label>
+                <label class="field-label" for="formProductTitle">Título del producto *</label>
                 <input type="text" id="formProductTitle" required placeholder="Ej: Camiseta Titular River Plate 2026"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Liga *</label>
-                <select id="formLeague" required class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                <label class="field-label" for="formLeague">Liga *</label>
+                <select id="formLeague" required class="field">
                   <option value="">Seleccionar...</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Equipo *</label>
-                <select id="formTeam" required class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                <label class="field-label" for="formTeam">Equipo *</label>
+                <select id="formTeam" required class="field">
                   <option value="">Primero seleccioná una liga</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Precio actual ($) *</label>
+                <label class="field-label" for="formPrice">Precio actual ($) *</label>
                 <input type="number" id="formPrice" required min="1" placeholder="45000"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Precio original ($) <span class="text-gray-400 font-normal">— si hay descuento</span></label>
+                <label class="field-label" for="formOriginalPrice">Precio original ($) <span class="opt">— si hay descuento</span></label>
                 <input type="number" id="formOriginalPrice" min="0" placeholder="55000 (vacío = sin descuento)"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">URLs de imágenes (una por línea)</label>
-                <textarea id="formImages" rows="2" placeholder="https://ejemplo.com/foto1.jpg"
-                          class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Subir Fotos Reales (Requiere Firebase)</label>
-                <input type="file" id="formImageUpload" accept="image/*" multiple
-                       class="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer">
+              <div class="sm:col-span-2">
+                <p class="field-label">Fotos</p>
+                <div class="upload">
+                  <input type="file" id="formImageUpload" accept="image/*" multiple class="sr-only">
+                  <label for="formImageUpload" class="btn btn-outline btn-sm">Agregar fotos</label>
+                  <span class="field-hint">Desde la galería o el dispositivo. La primera es la principal.</span>
+                </div>
+                <div id="formImagesPreview" class="photo-grid"></div>
               </div>
               <!-- Flags: Destacado y Nuevo -->
-              <div class="flex flex-col gap-3 justify-center">
-                <label class="flex items-center gap-2 cursor-pointer group">
-                  <input type="checkbox" id="formFeatured"
-                         class="w-5 h-5 rounded border-gray-300 text-yellow-500 focus:ring-yellow-400 cursor-pointer">
-                  <span class="text-sm text-gray-700 group-hover:text-gray-900">⭐ Producto <strong>Destacado</strong></span>
+              <div class="sm:col-span-2 flex flex-wrap gap-x-8 gap-y-3">
+                <label class="check">
+                  <input type="checkbox" id="formFeatured">
+                  <span>Producto <strong>destacado</strong></span>
                 </label>
-                <label class="flex items-center gap-2 cursor-pointer group">
-                  <input type="checkbox" id="formIsNew"
-                         class="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer">
-                  <span class="text-sm text-gray-700 group-hover:text-gray-900">🆕 <strong>Nuevo</strong> ingreso</span>
+                <label class="check">
+                  <input type="checkbox" id="formIsNew">
+                  <span><strong>Nuevo</strong> ingreso</span>
                 </label>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Descripción</label>
+                <label class="field-label" for="formDescription">Descripción</label>
                 <textarea id="formDescription" rows="3" placeholder="Descripción detallada del producto..."
-                          class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
+                          class="field"></textarea>
               </div>
               <div class="sm:col-span-2">
-                <label class="block text-xs font-semibold text-gray-600 mb-2">Stock por talle</label>
+                <p class="field-label">Stock por talle</p>
                 <div class="grid grid-cols-5 gap-2">
-                  <div class="text-center">
-                    <label class="block text-[10px] font-bold text-gray-500 mb-1">S</label>
-                    <input type="number" id="formStockS" min="0" value="0" class="w-full px-2 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-center">
+                  <div>
+                    <label class="field-label text-center" for="formStockS">S</label>
+                    <input type="number" id="formStockS" min="0" value="0" class="field text-center">
                   </div>
-                  <div class="text-center">
-                    <label class="block text-[10px] font-bold text-gray-500 mb-1">M</label>
-                    <input type="number" id="formStockM" min="0" value="0" class="w-full px-2 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-center">
+                  <div>
+                    <label class="field-label text-center" for="formStockM">M</label>
+                    <input type="number" id="formStockM" min="0" value="0" class="field text-center">
                   </div>
-                  <div class="text-center">
-                    <label class="block text-[10px] font-bold text-gray-500 mb-1">L</label>
-                    <input type="number" id="formStockL" min="0" value="0" class="w-full px-2 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-center">
+                  <div>
+                    <label class="field-label text-center" for="formStockL">L</label>
+                    <input type="number" id="formStockL" min="0" value="0" class="field text-center">
                   </div>
-                  <div class="text-center">
-                    <label class="block text-[10px] font-bold text-gray-500 mb-1">XL</label>
-                    <input type="number" id="formStockXL" min="0" value="0" class="w-full px-2 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-center">
+                  <div>
+                    <label class="field-label text-center" for="formStockXL">XL</label>
+                    <input type="number" id="formStockXL" min="0" value="0" class="field text-center">
                   </div>
-                  <div class="text-center">
-                    <label class="block text-[10px] font-bold text-gray-500 mb-1">XXL</label>
-                    <input type="number" id="formStockXXL" min="0" value="0" class="w-full px-2 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm text-center">
+                  <div>
+                    <label class="field-label text-center" for="formStockXXL">XXL</label>
+                    <input type="number" id="formStockXXL" min="0" value="0" class="field text-center">
                   </div>
                 </div>
               </div>
             </div>
-            <div class="flex gap-3 pt-2">
-              <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors text-sm">💾 Guardar Producto</button>
-              <button type="button" onclick="hideProductForm()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors text-sm">Cancelar</button>
+            <div class="flex gap-3">
+              <button type="submit" class="btn flex-1">Guardar producto</button>
+              <button type="button" onclick="hideProductForm()" class="btn btn-outline">Cancelar</button>
             </div>
           </form>
         </div>
 
         <!-- Product List -->
-        <div id="productList" class="space-y-3"></div>
+        <div id="productList" class="rows"></div>
       </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
@@ -251,56 +231,61 @@
       <!-- ═══════════════════════════════════════════════════════ -->
       <div data-tab-content="leagues" class="hidden">
         <!-- Actions bar -->
-        <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-800">🏆 Gestión de Ligas</h2>
-          <button onclick="showLeagueForm('add')"
-            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center gap-1.5">
-            ➕ Nueva Liga
+        <div class="tab-head">
+          <h2 class="page-title">Gestión de ligas</h2>
+          <button onclick="showLeagueForm('add')" class="btn btn-sm">
+            Nueva liga
           </button>
         </div>
 
-        <p class="text-xs text-gray-500 mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
-          ⚠️ <strong>Atención:</strong> Eliminar una liga también eliminará todos sus equipos y productos asociados.
+        <p class="alert mb-5">
+          <strong class="text-ink">Atención:</strong> Eliminar una liga también eliminará todos sus equipos y productos asociados.
         </p>
 
         <!-- League Form (Hidden) -->
-        <div id="leagueForm" class="hidden mb-4">
+        <div id="leagueForm" class="hidden mb-5">
           <form id="leagueFormEl" onsubmit="handleLeagueSubmit(event)"
-                class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 id="leagueFormTitle" class="text-lg font-bold text-gray-800">➕ Nueva Liga</h3>
-              <button type="button" onclick="hideLeagueForm()" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
+                class="panel flex flex-col gap-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 id="leagueFormTitle" class="panel-title">Nueva liga</h3>
+              <button type="button" onclick="hideLeagueForm()" class="text-btn">Cerrar</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div class="sm:col-span-1">
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre *</label>
+              <div>
+                <label class="field-label" for="formLeagueName">Nombre *</label>
                 <input type="text" id="formLeagueName" required placeholder="Ej: Liga Argentina"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Ícono / Emoji</label>
+                <label class="field-label" for="formLeagueIcon">Ícono / Emoji</label>
                 <input type="text" id="formLeagueIcon" placeholder="🏆" maxlength="4"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Orden</label>
+                <label class="field-label" for="formLeagueOrder">Orden</label>
                 <input type="number" id="formLeagueOrder" min="1" value="1"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
+              </div>
+              <div class="sm:col-span-3">
+                <p class="field-label">Logo (opcional)</p>
+                <div class="upload">
+                  <span id="leagueLogoPreview" class="logo-preview">—</span>
+                  <input type="file" id="leagueLogoInput" accept="image/*" class="sr-only">
+                  <label for="leagueLogoInput" class="btn btn-outline btn-sm">Elegir imagen</label>
+                  <button type="button" id="leagueLogoRemove" class="link-btn hidden">Quitar</button>
+                  <span class="field-hint">Se muestra en lugar del emoji, al mismo tamaño.</span>
+                </div>
               </div>
             </div>
-            <div class="flex gap-3 pt-2">
-              <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors text-sm">💾 Guardar Liga</button>
-              <button type="button" onclick="hideLeagueForm()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors text-sm">Cancelar</button>
+            <div class="flex gap-3">
+              <button type="submit" class="btn flex-1">Guardar liga</button>
+              <button type="button" onclick="hideLeagueForm()" class="btn btn-outline">Cancelar</button>
             </div>
           </form>
         </div>
 
         <!-- League List -->
-        <div id="leagueList" class="space-y-3"></div>
+        <div id="leagueList" class="rows"></div>
       </div>
 
       <!-- ═══════════════════════════════════════════════════════ -->
@@ -308,91 +293,99 @@
       <!-- ═══════════════════════════════════════════════════════ -->
       <div data-tab-content="teams" class="hidden">
         <!-- Actions bar -->
-        <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-4">
-          <h2 class="text-lg font-bold text-gray-800">⚽ Gestión de Equipos</h2>
-          <button onclick="showTeamForm('add')"
-            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl transition-colors text-sm flex items-center gap-1.5">
-            ➕ Nuevo Equipo
+        <div class="tab-head">
+          <h2 class="page-title">Gestión de equipos</h2>
+          <button onclick="showTeamForm('add')" class="btn btn-sm">
+            Nuevo equipo
           </button>
         </div>
 
         <!-- Filter -->
-        <div class="mb-4">
+        <div class="mb-5">
           <select id="filterTeamLeague" onchange="handleTeamLeagueFilter(this.value)"
-                  class="px-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white w-full sm:w-auto">
+                  class="field sm:w-60">
             <option value="">Todas las ligas</option>
           </select>
         </div>
 
-        <p class="text-xs text-gray-500 mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3">
-          ⚠️ <strong>Atención:</strong> Eliminar un equipo también eliminará todos sus productos asociados.
+        <p class="alert mb-5">
+          <strong class="text-ink">Atención:</strong> Eliminar un equipo también eliminará todos sus productos asociados.
         </p>
 
         <!-- Team Form (Hidden) -->
-        <div id="teamForm" class="hidden mb-4">
+        <div id="teamForm" class="hidden mb-5">
           <form id="teamFormEl" onsubmit="handleTeamSubmit(event)"
-                class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
-            <div class="flex items-center justify-between">
-              <h3 id="teamFormTitle" class="text-lg font-bold text-gray-800">➕ Nuevo Equipo</h3>
-              <button type="button" onclick="hideTeamForm()" class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
+                class="panel flex flex-col gap-5">
+            <div class="flex items-center justify-between gap-3">
+              <h3 id="teamFormTitle" class="panel-title">Nuevo equipo</h3>
+              <button type="button" onclick="hideTeamForm()" class="text-btn">Cerrar</button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Nombre del equipo *</label>
+                <label class="field-label" for="formTeamName">Nombre del equipo *</label>
                 <input type="text" id="formTeamName" required placeholder="Ej: River Plate"
-                       class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                       class="field">
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Liga *</label>
+                <label class="field-label" for="formTeamLeague">Liga *</label>
                 <select id="formTeamLeague" required
-                        class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+                        class="field">
                   <option value="">Seleccionar liga...</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Color del equipo</label>
-                <div class="flex items-center gap-2">
+                <label class="field-label" for="formTeamColor">Color del equipo</label>
+                <div class="flex items-center gap-3">
                   <input type="color" id="formTeamColor" value="#10b981"
-                         class="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer p-0.5">
-                  <span class="text-xs text-gray-500">Elegí un color representativo</span>
+                         class="field-color">
+                  <span class="text-xs text-muted">Elegí un color representativo</span>
+                </div>
+              </div>
+              <div class="sm:col-span-3">
+                <p class="field-label">Logo (opcional)</p>
+                <div class="upload">
+                  <span id="teamLogoPreview" class="logo-preview">—</span>
+                  <input type="file" id="teamLogoInput" accept="image/*" class="sr-only">
+                  <label for="teamLogoInput" class="btn btn-outline btn-sm">Elegir imagen</label>
+                  <button type="button" id="teamLogoRemove" class="link-btn hidden">Quitar</button>
+                  <span class="field-hint">Se muestra en lugar del punto de color, al tamaño del texto.</span>
                 </div>
               </div>
             </div>
-            <div class="flex gap-3 pt-2">
-              <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors text-sm">💾 Guardar Equipo</button>
-              <button type="button" onclick="hideTeamForm()" class="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl transition-colors text-sm">Cancelar</button>
+            <div class="flex gap-3">
+              <button type="submit" class="btn flex-1">Guardar equipo</button>
+              <button type="button" onclick="hideTeamForm()" class="btn btn-outline">Cancelar</button>
             </div>
           </form>
         </div>
 
         <!-- Team List -->
-        <div id="teamList" class="space-y-3"></div>
+        <div id="teamList" class="rows"></div>
       </div>
 
       <!-- TAB: SETTINGS -->
       <div data-tab-content="settings" class="hidden">
-        <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Configuración del Sitio</h2>
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <form id="settingsForm" class="space-y-4">
+        <div class="tab-head">
+          <h2 class="page-title">Configuración del sitio</h2>
+        </div>
+        <div class="panel">
+          <p class="field-hint mt-0 mb-4">Se muestran en el pie de página de la tienda. Lo que dejes vacío no aparece.</p>
+          <form id="settingsForm" class="flex flex-col gap-4">
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Instagram URL</label>
-              <input type="url" id="formInsta" placeholder="https://instagram.com/tu_tienda" class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+              <label class="field-label" for="formInsta">Instagram URL</label>
+              <input type="url" id="formInsta" placeholder="https://instagram.com/tu_tienda" class="field">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Facebook URL</label>
-              <input type="url" id="formFace" placeholder="https://facebook.com/tu_tienda" class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
+              <label class="field-label" for="formFace">Facebook URL</label>
+              <input type="url" id="formFace" placeholder="https://facebook.com/tu_tienda" class="field">
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-600 mb-1">Google Maps (URL o iFrame Embed)</label>
-              <textarea id="formMaps" rows="3" placeholder='<iframe src="https://www.google.com/maps/embed?..." ></iframe>' class="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm resize-none"></textarea>
-              <p class="text-[10px] text-gray-400 mt-1">Podés pegar directamente el código HTML de "Compartir > Insertar un mapa" de Google Maps.</p>
+              <label class="field-label" for="formMaps">Ubicación del local</label>
+              <textarea id="formMaps" rows="3" placeholder="Ej: Mitre 123, San Pedro, Buenos Aires" class="field"></textarea>
+              <p class="text-xs text-muted mt-1.5">Escribí la dirección, pegá un link de Google Maps o el código de "Compartir &gt; Insertar un mapa". En la tienda se ve una parte del mapa. Los links cortos (maps.app.goo.gl) solo se muestran como enlace: para ver el mapa, usá la dirección.</p>
             </div>
-            <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 px-6 rounded-xl transition-colors text-sm">
-              💾 Guardar Ajustes
+            <button type="submit" class="btn self-start">
+              Guardar ajustes
             </button>
           </form>
         </div>
@@ -401,16 +394,18 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-500 py-6 mt-8">
-      <div class="max-w-5xl mx-auto px-4 text-center text-sm">
-        <p>Panel de Administración – CasacasStore ⚽</p>
-        <a href="index.html" class="text-emerald-400 hover:text-emerald-300 text-sm mt-2 inline-block transition-colors">← Ir a la tienda</a>
+    <footer class="site-footer">
+      <div class="admin-wrap footer-row">
+        <p>Panel de administración – CasacasStore</p>
+        <a href="index.html" class="link-muted">← Ir a la tienda</a>
       </div>
     </footer>
   </section>
 
   <!-- Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-storage-compat.js"></script><script src="js/data.js"></script><script src="js/firebase-store.js"></script>
+  <script src="js/logos.js"></script>
+  <script src="js/confirm-dialog.js"></script>
   <script src="js/cart.js"></script>
   <script src="js/admin.js"></script>
 </body>

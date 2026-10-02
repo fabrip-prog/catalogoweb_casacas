@@ -5,9 +5,6 @@
 class Cart {
   constructor() {
     this.items = JSON.parse(localStorage.getItem(CONFIG.localStorageKeys.cart) || '[]');
-    this.shippingCost = 0;
-    this.shippingCompany = '';
-    this.zipCode = '';
   }
 
   /* ── Operaciones ────────────────────────────────────────────── */
@@ -70,25 +67,12 @@ class Cart {
 
   clear() {
     this.items = [];
-    this.shippingCost = 0;
-    this.shippingCompany = '';
-    this.zipCode = '';
     this._save();
   }
 
-  setShipping(company, cp, cost) {
-    this.shippingCompany = company;
-    this.zipCode = cp;
-    this.shippingCost = cost;
-    this._save();
-  }
-
+  // Total de los productos: el envío no se cobra en la tienda, se coordina con el vendedor
   getTotal() {
     return this.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }
-
-  getFinalTotal() {
-    return this.getTotal() + this.shippingCost;
   }
 
   getTotalItems() {
@@ -144,12 +128,9 @@ class Cart {
     });
 
     msg += `━━━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `🧾 *Subtotal:* ${CONFIG.currency}${this.getTotal().toLocaleString('es-AR')}\n`;
-    if (this.shippingCost > 0) {
-      msg += `🚚 *Envío (${this.shippingCompany.toUpperCase()} - CP: ${this.zipCode}):* ${CONFIG.currency}${this.shippingCost.toLocaleString('es-AR')}\n`;
-    }
-    msg += `💰 *TOTAL FINAL: ${CONFIG.currency}${this.getFinalTotal().toLocaleString('es-AR')}*\n`;
-    msg += `📦 *Productos: ${this.getTotalItems()} items*\n\n`;
+    msg += `💰 *TOTAL SIN ENVÍO: ${CONFIG.currency}${this.getTotal().toLocaleString('es-AR')}*\n`;
+    msg += `📦 *Productos: ${this.getTotalItems()} items*\n`;
+    msg += `🚚 *Envío:* a coordinar con el vendedor\n\n`;
     msg += `_Enviado desde ${CONFIG.storeName}_`;
 
     return msg;
@@ -192,10 +173,10 @@ function showNotification(message, type = 'success') {
   const container = document.getElementById('notifications');
   if (!container) return;
 
-  const colors = {
-    success: 'bg-emerald-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500',
+  const variants = {
+    success: 'toast',
+    error: 'toast toast-error',
+    info: 'toast',
   };
 
   const icons = {
@@ -205,10 +186,10 @@ function showNotification(message, type = 'success') {
   };
 
   const el = document.createElement('div');
-  el.className = `notif-enter ${colors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[280px] max-w-sm`;
+  el.className = `notif-enter ${variants[type]}`;
   el.innerHTML = `
-    <span class="text-lg font-bold">${icons[type]}</span>
-    <span class="text-sm font-medium flex-1">${message}</span>
+    <span class="toast-icon">${icons[type]}</span>
+    <span class="flex-1">${message}</span>
   `;
   container.appendChild(el);
 

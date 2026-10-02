@@ -16,10 +16,10 @@ Este proyecto es una completa aplicación web de e-commerce y catálogo orientad
   - Selector de cantidades de acuerdo al stock real disponible.
 - **Carrito de Compras Mejorado**:
   - Sidebar deslizable para armar el pedido acumulativo.
-  - **Calculadora de Envíos**: Permite ingresar un Código Postal y elegir una empresa (Andreani, Correo Argentino, OCA) para calcular y sumar el envío al total.
+  - **Envío a coordinar**: El costo de envío no se calcula en la tienda; se acuerda con el vendedor por WhatsApp al enviar el pedido.
 - **Integración con WhatsApp**:
   - Envío individual: Consultas rápidas por un producto y un talle específicos (desde la Card o el Modal).
-  - Check-out del carrito: Genera un resumen completo del pedido, incluyendo subtotal, detalles de envío, total final, talles y unidades, enviándolo directo al número configurado del administrador.
+  - Check-out del carrito: Genera un resumen completo del pedido, incluyendo total sin envío, talles y unidades, con el envío marcado como "a coordinar", enviándolo directo al número configurado del administrador.
 
 ### ⚙️ Panel de Administración
 - Acceso oculto mediante un pequeño enlace **⚙ Panel** ubicado en el pie de página (footer) de la tienda.

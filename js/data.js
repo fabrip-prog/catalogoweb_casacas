@@ -4,7 +4,7 @@
 
 // ── Configuration ──────────────────────────────────────────────────
 const CONFIG = {
-  whatsappNumber: '5491112345678',        // Número WhatsApp del admin (cambiar)
+  whatsappNumber: '5493329506445',        // 3329 50-6445 en formato wa.me: 54 + 9 + característica sin 0 + número sin 15
   storeName: 'CasacasStore ⚽',
   currency: '$',
   adminUser: 'admin',

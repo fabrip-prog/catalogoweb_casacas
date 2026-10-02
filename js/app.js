@@ -9,6 +9,9 @@
   let currentLeague = null;
   let currentTeam = null;
   let currentSearch = '';
+  let showingAll = false;   // vista "Todos los productos" del menú
+  let homeAllShown = 0;     // productos desplegados en la portada (0 = sección cerrada)
+  const HOME_BATCH = 8;     // cuántos se suman con cada "Ver más"
 
   // ── DOM refs ───────────────────────────────────────────────────
   const $ = (sel) => document.querySelector(sel);
@@ -31,38 +34,103 @@
     renderFooter();
   });
 
+  // Si los Ajustes se guardan con la tienda abierta en otra pestaña, el footer se actualiza solo
+  window.addEventListener('storage', (e) => {
+    if (e.key === CONFIG.localStorageKeys.settings) renderFooter();
+  });
+
   // ══════════════════════════════════════════════════════════════
-  //  Footer (Settings)
+  //  Footer (Settings) – redes y ubicación cargadas en Ajustes del panel
   // ══════════════════════════════════════════════════════════════
-  function renderFooter() {
-    const s = typeof store.getSettings === 'function' ? store.getSettings() : { instagram:'', facebook:'', mapsEmbed:'' };
-    
-    // Redes Sociales
-    const socialsContainer = document.querySelector('#footerSocials > div');
-    if (socialsContainer) {
-       let linksHTML = '';
-       if (s.instagram) linksHTML += `<a href="${s.instagram}" target="_blank" class="hover:text-emerald-400 transition-colors">Instagram</a>`;
-       if (s.facebook) linksHTML += `<a href="${s.facebook}" target="_blank" class="hover:text-emerald-400 transition-colors">Facebook</a>`;
-       
-       if (linksHTML) {
-          socialsContainer.innerHTML = linksHTML;
-       } else {
-          socialsContainer.innerHTML = `<span class="opacity-50">Sin configurar</span>`;
-       }
+  const escAttr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+  // Solo direcciones web completas (http/https); cualquier otra cosa se ignora
+  function safeUrl(value) {
+    try {
+      const url = new URL(String(value || '').trim());
+      return /^https?:$/.test(url.protocol) ? url.href : '';
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // "@usuario" a partir de la URL del perfil, si se puede leer
+  function handleFrom(url) {
+    const first = new URL(url).pathname.split('/').filter(Boolean)[0] || '';
+    return /^[\w.-]+$/.test(first) && !/\.php$/i.test(first) ? first : '';
+  }
+
+  // Ubicación cargada en Ajustes → { embed, link }: el mapa a mostrar y un link para abrirlo en Google Maps.
+  // Acepta el código "Insertar un mapa" (se usa solo su src), un link de Google Maps o la dirección escrita.
+  function mapFrom(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    const isEmbed = (url) => /^https:\/\/(www\.|maps\.)?google\.[a-z.]+\/maps\/embed/i.test(url);
+    // Mapa de Google sin clave de API a partir de una búsqueda (dirección, lugar o coordenadas)
+    const embedFor = (query) => `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
+
+    const src = raw.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);
+    if (src) {
+      const url = safeUrl(src[1].replace(/&amp;/g, '&'));
+      return isEmbed(url) ? { embed: url } : null;
     }
 
-    // Mapa
-    const mapContainer = document.getElementById('mapContainer');
-    if (mapContainer) {
-       if (s.mapsEmbed) {
-          if (s.mapsEmbed.includes('<iframe')) {
-             mapContainer.innerHTML = s.mapsEmbed.replace('<iframe ', '<iframe class="w-full h-full" ');
-          } else {
-             mapContainer.innerHTML = `<a href="${s.mapsEmbed}" target="_blank" class="text-emerald-500 font-bold hover:underline">🗺️ Abrir en Google Maps</a>`;
-          }
-       } else {
-          mapContainer.innerHTML = 'Sin ubicación configurada';
-       }
+    const link = safeUrl(raw);
+    if (!link) {
+      // Dirección escrita a mano (cualquier otra cosa con "algo:" adelante se ignora)
+      if (raw.length < 4 || /^[a-z]+:/i.test(raw)) return null;
+      return { embed: embedFor(raw), link: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(raw)}` };
+    }
+    if (isEmbed(link)) return { embed: link };
+
+    // Link de Google Maps: se busca qué lugar muestra (búsqueda, coordenadas exactas, nombre o centro del mapa)
+    const url = new URL(link);
+    if (/(^|\.)google\.[a-z.]+$/i.test(url.hostname) && url.pathname.startsWith('/maps')) {
+      const pin = link.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+      const place = url.pathname.match(/\/maps\/(?:place|search)\/([^/@]+)/);
+      const center = link.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+      const query = url.searchParams.get('q') || url.searchParams.get('query')
+        || (pin && `${pin[1]},${pin[2]}`)
+        || (place && decodeURIComponent(place[1].replace(/\+/g, ' ')))
+        || (center && `${center[1]},${center[2]}`);
+      if (query) return { embed: embedFor(query), link };
+    }
+    // Links cortos (maps.app.goo.gl) u otros: la página no puede leer adónde apuntan, queda solo el enlace
+    return { link };
+  }
+
+  // Íconos de las apps, dibujados acá para no depender de archivos ni de otra librería
+  const APP_ICONS = {
+    Instagram: `<svg class="app-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.3" cy="6.7" r="1.15" fill="currentColor" stroke="none"/></svg>`,
+    Facebook: `<svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><mask id="fb-f"><rect width="24" height="24" fill="#fff"/><path fill="#000" d="M13.2 23V13.7h2.3l.35-2.7H13.2V9.4c0-.78.22-1.3 1.33-1.3h1.42V5.7a19 19 0 0 0-2.07-.1c-2.05 0-3.45 1.25-3.45 3.55V11H8.1v2.7h2.33V23Z"/></mask><circle cx="12" cy="12" r="10" fill="currentColor" mask="url(#fb-f)"/></svg>`,
+    Maps: `<svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M12 2.5c-3.87 0-7 3.06-7 6.9C5 14.5 12 21.5 12 21.5s7-7 7-12.1c0-3.84-3.13-6.9-7-6.9Zm0 9.5a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z"/></svg>`,
+  };
+
+  function renderFooter() {
+    const s = typeof store.getSettings === 'function' ? store.getSettings() : { instagram:'', facebook:'', mapsEmbed:'' };
+
+    // Redes: solo las cargadas; si no hay ninguna, la columna no aparece
+    const socials = [['Instagram', safeUrl(s.instagram)], ['Facebook', safeUrl(s.facebook)]].filter(([, url]) => url);
+    const socialsBox = $('#footerSocials');
+    if (socialsBox) {
+      socialsBox.querySelector('.footer-links').innerHTML = socials.map(([name, url]) => {
+        const handle = handleFrom(url);
+        return `<a href="${escAttr(url)}" target="_blank" rel="noopener" class="footer-social" aria-label="${name}" title="${name}">
+            ${APP_ICONS[name]}${handle ? `<span class="count">@${escAttr(handle)}</span>` : ''}
+          </a>`;
+      }).join('');
+      socialsBox.classList.toggle('hidden', socials.length === 0);
+    }
+
+    // Ubicación: una parte del mapa y, si hay link, "Cómo llegar" para abrirlo en Google Maps
+    const location = mapFrom(s.mapsEmbed);
+    const locationBox = $('#footerLocation');
+    const mapContainer = $('#mapContainer');
+    if (locationBox && mapContainer) {
+      mapContainer.innerHTML = !location ? '' : `
+        ${location.embed ? `<div class="footer-map"><iframe src="${escAttr(location.embed)}" title="Ubicación de la tienda en Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>` : ''}
+        ${location.link ? `<a href="${escAttr(location.link)}" target="_blank" rel="noopener" class="footer-social" aria-label="Abrir la ubicación en Google Maps" title="Google Maps">${APP_ICONS.Maps}<span class="footer-social-name">${location.embed ? 'Cómo llegar' : 'Ver ubicación'}</span></a>` : ''}`;
+      locationBox.classList.toggle('hidden', !location);
     }
   }
 
@@ -77,78 +145,58 @@
 
     const sizesHtml = compact ? '' : Object.entries(p.sizes).map(([size, stock]) => {
       const available = stock > 0;
-      return `<span class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-xs font-semibold border
-        ${available
-          ? 'border-gray-300 bg-white text-gray-700 hover:border-emerald-400 cursor-pointer'
-          : 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50 line-through'
-        }" title="${available ? `${stock} disponibles` : 'Sin stock'}">${size}</span>`;
+      return `<i class="${available ? '' : 'off'}" title="${available ? `${stock} disponibles` : 'Sin stock'}">${size}</i>`;
     }).join('');
 
     return `
-      <div class="product-card bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col ${compact ? 'min-w-[200px] sm:min-w-[240px] snap-start' : ''}">
+      <div class="card">
         <!-- Image -->
-        <div class="relative ${compact ? 'aspect-[3/4]' : 'aspect-[4/5]'} bg-gray-100 overflow-hidden cursor-pointer group"
-             onclick="openProductModal('${p.id}')">
+        <div class="ph" onclick="openProductModal('${p.id}')">
           <img src="${p.images[0]}" alt="${p.title}"
-               class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                loading="lazy"
-               onerror="this.src='https://placehold.co/400x500/e2e8f0/94a3b8?text=Sin+Imagen'">
-          <!-- Badges top-left -->
-          <div class="absolute top-2 left-2 flex flex-col gap-1">
-            ${team ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow" style="background:${team.color}">${team.name}</span>` : ''}
-            ${p.featured ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400 text-yellow-900 shadow">⭐ Destacado</span>` : ''}
-            ${p.isNew ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white shadow">🆕 Nuevo</span>` : ''}
-          </div>
-          <!-- Badges top-right -->
-          <div class="absolute top-2 right-2 flex flex-col gap-1 items-end">
-            ${hasDiscount ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white shadow">-${discountPct}% OFF</span>` : ''}
+               onerror="this.src='https://placehold.co/400x500/e7e7e3/6b6b66?text=Sin+Imagen'">
+          <!-- Badges -->
+          <div class="ph-badges">
+            ${p.featured ? `<span class="badge">Destacado</span>` : ''}
+            ${p.isNew ? `<span class="badge">Nuevo</span>` : ''}
+            ${hasDiscount ? `<span class="badge low">-${discountPct}% OFF</span>` : ''}
             ${totalStock === 0
-              ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">AGOTADO</span>`
+              ? `<span class="badge low">Agotado</span>`
               : totalStock <= 5
-                ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white">¡Últimas!</span>`
+                ? `<span class="badge low">¡Últimas!</span>`
                 : ''
             }
-          </div>
-          <!-- Hover overlay -->
-          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-            <span class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 text-gray-800 px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-              🔍 Ver detalle
-            </span>
           </div>
         </div>
 
         <!-- Info -->
-        <div class="p-3 sm:p-4 flex flex-col flex-1">
-          <h3 class="font-bold text-gray-800 text-sm leading-tight line-clamp-2 mb-1 cursor-pointer hover:text-emerald-600 transition-colors"
-              onclick="openProductModal('${p.id}')">${p.title}</h3>
-          ${compact ? '' : `<p class="text-xs text-gray-500 line-clamp-2 mb-3">${p.description}</p>`}
-
-          ${compact ? '' : `<div class="flex flex-wrap gap-1 mb-3">${sizesHtml}</div>`}
+        <div class="meta">
+          <h3 class="card-title" onclick="openProductModal('${p.id}')">${p.title}</h3>
+          ${team ? `<p class="card-team">${teamMark(team)}${team.name}</p>` : ''}
+          ${compact ? '' : `<p class="card-desc">${p.description}</p>`}
 
           <!-- Price -->
-          <div class="mt-auto">
+          <p class="card-price">
             ${hasDiscount
-              ? `<p class="text-xs text-gray-400 line-through">${CONFIG.currency}${p.originalPrice.toLocaleString('es-AR')}</p>
-                 <p class="text-xl font-extrabold text-red-600">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</p>`
-              : `<p class="text-xl font-extrabold text-gray-900">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</p>`
+              ? `<span class="price low">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>
+                 <s class="price">${CONFIG.currency}${p.originalPrice.toLocaleString('es-AR')}</s>`
+              : `<span class="price">${CONFIG.currency}${p.price.toLocaleString('es-AR')}</span>`
             }
-          </div>
+          </p>
+
+          ${compact ? '' : `<div class="avail">${sizesHtml}</div>`}
 
           <!-- Actions -->
-          <div class="flex gap-2 mt-2">
+          <div class="card-actions">
             <button onclick="openProductModal('${p.id}')"
-              class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 ${totalStock === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+              class="btn btn-sm flex-1"
               ${totalStock === 0 ? 'disabled' : ''}>
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/>
-              </svg>
               Agregar
             </button>
             <button onclick="event.stopPropagation(); cart.sendSingleWhatsApp('${p.id}', '')"
-              class="btn-whatsapp bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2.5 px-3 rounded-xl transition-colors flex items-center justify-center"
-              title="Consultar por WhatsApp">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              class="btn btn-outline btn-sm btn-icon"
+              title="Consultar por WhatsApp" aria-label="Consultar por WhatsApp">
+              <svg fill="currentColor" viewBox="0 0 24 24">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
               </svg>
             </button>
@@ -159,20 +207,20 @@
   }
 
   // ── Carousel section helper ────────────────────────────────────
-  function sectionHTML(icon, title, subtitle, products, seeAllAction) {
+  function sectionHTML(title, subtitle, products, seeAllAction) {
     if (!products || products.length === 0) return '';
     return `
-      <section class="mb-8">
-        <div class="flex items-center justify-between mb-3">
+      <section>
+        <div class="section-head">
           <div>
-            <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 flex items-center gap-2">
-              <span>${icon}</span> ${title}
-            </h2>
-            ${subtitle ? `<p class="text-xs text-gray-500 mt-0.5">${subtitle}</p>` : ''}
+            <h2 class="section-title">${title}</h2>
+            ${subtitle ? `<p class="section-sub">${subtitle}</p>` : ''}
           </div>
-          ${seeAllAction ? `<button onclick="${seeAllAction}" class="text-emerald-600 text-xs font-semibold hover:underline flex-shrink-0">Ver todos →</button>` : ''}
+          ${seeAllAction
+            ? `<button onclick="${seeAllAction}" class="text-btn">Ver todos</button>`
+            : `<span class="count">${products.length} ${products.length === 1 ? 'producto' : 'productos'}</span>`}
         </div>
-        <div class="flex gap-3 sm:gap-4 overflow-x-auto pb-3 snap-x snap-mandatory mobile-league-bar">
+        <div class="rail">
           ${products.map(p => productCardHTML(p, true)).join('')}
         </div>
       </section>
@@ -183,7 +231,7 @@
   //  Main View Router
   // ══════════════════════════════════════════════════════════════
   function renderView() {
-    const isHome = !currentLeague && !currentTeam && !currentSearch;
+    const isHome = !currentLeague && !currentTeam && !currentSearch && !showingAll;
     if (isHome) {
       renderHome();
     } else {
@@ -219,56 +267,120 @@
 
     grid.classList.remove('hidden');
     // Switch to single column for home sections
-    grid.className = 'space-y-2';
+    grid.className = 'home-sections';
 
     let html = '';
 
-    // Hero Banner
+    // Hero: la tienda a la izquierda y dos destacados en placas a la derecha
+    const heroPicks = (featured.length ? featured : allProducts).slice(0, 2);
     html += `
-      <section class="bg-gradient-to-br from-gray-900 via-gray-800 to-emerald-900 rounded-2xl p-6 sm:p-8 text-white mb-6 relative overflow-hidden">
-        <div class="absolute top-0 right-0 w-40 h-40 bg-emerald-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 w-32 h-32 bg-yellow-400/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
-        <div class="relative">
-          <h1 class="text-2xl sm:text-3xl font-black mb-2">⚽ CasacasStore</h1>
-          <p class="text-gray-300 text-sm sm:text-base max-w-lg">Las mejores camisetas de fútbol de todas las ligas del mundo. Calidad premium, envíos a todo el país.</p>
-          <div class="flex flex-wrap gap-2 mt-4">
-            <span class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">🇦🇷 Liga Argentina</span>
-            <span class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">🏴 Premier League</span>
-            <span class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">🇪🇸 La Liga</span>
-            <span class="px-3 py-1 bg-white/10 rounded-full text-xs font-medium">🌍 Selecciones</span>
-          </div>
+      <section class="hero">
+        <div>
+          <p class="label">Camisetas de fútbol</p>
+          <h1 class="hero-title">CasacasStore</h1>
+          <p class="hero-lead">Las mejores camisetas de fútbol de todas las ligas del mundo. Calidad premium, envíos a todo el país.</p>
+          <ul class="hero-leagues">
+            <li>Liga Argentina</li>
+            <li>Premier League</li>
+            <li>La Liga</li>
+            <li>Selecciones</li>
+          </ul>
+        </div>
+        <div class="hero-tiles">
+          ${heroPicks.map(p => `
+            <button class="htile" onclick="openProductModal('${p.id}')">
+              <span class="ph">
+                <img src="${p.images[0]}" alt="${p.title}"
+                     onerror="this.src='https://placehold.co/400x500/e7e7e3/6b6b66?text=Sin+Imagen'">
+              </span>
+              <span class="hc">${p.title}</span>
+            </button>
+          `).join('')}
         </div>
       </section>
     `;
 
     // Destacados
     if (featured.length > 0) {
-      html += sectionHTML('⭐', 'Productos Destacados', 'Los más elegidos por nuestros clientes', featured);
+      html += sectionHTML('Productos destacados', 'Los más elegidos por nuestros clientes', featured);
     }
 
     // Ofertas
     if (offers.length > 0) {
-      html += sectionHTML('🏷️', 'Ofertas y Descuentos', '¡Aprovechá los mejores precios!', offers);
+      html += sectionHTML('Ofertas y descuentos', '¡Aprovechá los mejores precios!', offers);
     }
 
     // Nuevos ingresos
     if (newArrivals.length > 0) {
-      html += sectionHTML('🆕', 'Nuevos Ingresos', 'Los últimos productos que llegaron', newArrivals);
+      html += sectionHTML('Nuevos ingresos', 'Los últimos productos que llegaron', newArrivals);
     }
 
-    // Todos los productos – grid normal
+    // Todos los productos – se despliegan de a tandas para que la portada no se haga interminable
     html += `
-      <section class="mt-4">
-        <h2 class="text-lg sm:text-xl font-extrabold text-gray-900 flex items-center gap-2 mb-4">
-          <span>👕</span> Todos los Productos
-        </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 stagger">
-          ${allProducts.map(p => productCardHTML(p, false)).join('')}
+      <section>
+        <div class="section-head">
+          <h2 class="section-title">Todos los productos</h2>
+          <span class="count">${allProducts.length} productos</span>
         </div>
+        <div id="homeAllGrid" class="product-grid stagger hidden"></div>
+        <div id="homeAllMore" class="more"></div>
       </section>
     `;
 
     grid.innerHTML = html;
+    renderHomeAll();
+  }
+
+  function renderHomeAll() {
+    const gridEl = $('#homeAllGrid');
+    if (!gridEl) return;
+    const all = store.getProducts();
+    const shown = Math.min(homeAllShown, all.length);
+    gridEl.innerHTML = all.slice(0, shown).map(p => productCardHTML(p, false)).join('');
+    gridEl.classList.toggle('hidden', shown === 0);
+    updateHomeAllMore(shown, all.length);
+  }
+
+  function updateHomeAllMore(shown, total) {
+    const more = $('#homeAllMore');
+    if (!more) return;
+    more.innerHTML = shown === 0
+      ? `<button class="btn btn-outline" onclick="showMoreHomeProducts()">Ver los ${total} productos</button>`
+      : shown < total
+        ? `<button class="btn btn-outline" onclick="showMoreHomeProducts()">Ver más</button>
+           <span class="count">${shown} de ${total}</span>`
+        : '';
+  }
+
+  window.showMoreHomeProducts = function () {
+    const gridEl = $('#homeAllGrid');
+    if (!gridEl) return;
+    const all = store.getProducts();
+    const from = Math.min(homeAllShown, all.length);
+    homeAllShown = from + HOME_BATCH;
+    // Se agregan solo las tarjetas nuevas, así las que ya estaban no repiten la animación
+    const batch = document.createElement('div');
+    batch.innerHTML = all.slice(from, homeAllShown).map(p => productCardHTML(p, false)).join('');
+    gridEl.append(...batch.children);
+    gridEl.classList.remove('hidden');
+    updateHomeAllMore(Math.min(homeAllShown, all.length), all.length);
+  };
+
+  // "Todos los productos" del menú: la grilla completa, sin filtros
+  function showAllProducts() {
+    showingAll = true;
+    currentLeague = null;
+    currentTeam = null;
+    currentSearch = '';
+    $$('#searchInput, #searchInputMobile').forEach(i => i.value = '');
+    renderAll();
+    // En mobile el menú es un cajón: se cierra para que se vea la grilla
+    const sidebar = $('#mobileSidebar');
+    if (sidebar && sidebar.style.transform === 'translateX(0px)') {
+      sidebar.style.transform = 'translateX(-100%)';
+      $('#mobileSidebarOverlay')?.classList.add('hidden');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -300,7 +412,7 @@
     if (empty) empty.classList.add('hidden');
     grid.classList.remove('hidden');
     // Restore grid classes for filtered view
-    grid.className = 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5 stagger';
+    grid.className = 'product-grid stagger';
 
     grid.innerHTML = products.map(p => productCardHTML(p, false)).join('');
   }
@@ -314,28 +426,31 @@
     const leagues = store.getLeagues();
 
     nav.innerHTML = `
-      <button class="league-btn w-full text-left px-4 py-3 flex items-center gap-3 font-medium text-gray-700 ${!currentLeague ? 'active' : ''}"
+      <button class="league-btn ${!currentLeague && !showingAll ? 'active' : ''}"
               data-league="all">
-        <span class="text-xl">🏠</span>
-        <span>Inicio</span>
+        <span class="league-icon" aria-hidden="true"></span>
+        <span class="league-name">Inicio</span>
+      </button>
+      <button class="league-btn ${showingAll && !currentLeague ? 'active' : ''}"
+              data-nav="todos">
+        <span class="league-icon" aria-hidden="true"></span>
+        <span class="league-name">Todos los productos</span>
       </button>
       ${leagues.map(l => {
         const teams = store.getTeamsByLeague(l.id);
         return `
           <div>
-            <button class="league-btn w-full text-left px-4 py-3 flex items-center gap-3 font-medium text-gray-700 ${currentLeague === l.id ? 'active' : ''}"
+            <button class="league-btn ${currentLeague === l.id ? 'active' : ''}"
                     data-league="${l.id}">
-              <span class="text-xl">${l.icon}</span>
-              <span class="flex-1">${l.name}</span>
-              <svg class="w-4 h-4 transition-transform ${currentLeague === l.id ? 'rotate-90' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-              </svg>
+              <span class="league-icon">${leagueMark(l)}</span>
+              <span class="league-name">${l.name}</span>
+              <span class="league-toggle" aria-hidden="true">${currentLeague === l.id ? '−' : '+'}</span>
             </button>
             <div class="team-list ${currentLeague === l.id ? 'expanded' : ''}" data-teams-for="${l.id}">
               ${teams.map(t => `
-                <button class="w-full text-left pl-12 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-emerald-600 transition-colors flex items-center gap-2 ${currentTeam === t.id ? 'text-emerald-600 font-semibold bg-emerald-50' : ''}"
+                <button class="team-btn ${currentTeam === t.id ? 'is-active' : ''}"
                         data-team="${t.id}" data-league-parent="${l.id}">
-                  <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:${t.color}"></span>
+                  ${teamMark(t)}
                   ${t.name}
                 </button>
               `).join('')}
@@ -348,6 +463,7 @@
     nav.querySelectorAll('[data-league]').forEach(btn => {
       btn.addEventListener('click', () => {
         const leagueId = btn.dataset.league;
+        showingAll = false;
         if (leagueId === 'all') {
           currentLeague = null;
           currentTeam = null;
@@ -367,6 +483,7 @@
     nav.querySelectorAll('[data-team]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
+        showingAll = false;
         currentTeam = btn.dataset.team;
         currentLeague = btn.dataset.leagueParent;
         currentSearch = '';
@@ -377,6 +494,8 @@
         renderView();
       });
     });
+
+    nav.querySelector('[data-nav="todos"]')?.addEventListener('click', showAllProducts);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -388,19 +507,21 @@
     const leagues = store.getLeagues();
 
     bar.innerHTML = `
-      <button class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors
-        ${!currentLeague ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-700'}"
-        data-mleague="all">🏠 Inicio</button>
+      <button class="tab ${!currentLeague && !showingAll ? 'is-active' : ''}"
+        data-mleague="all">Inicio</button>
+      <button class="tab ${showingAll && !currentLeague ? 'is-active' : ''}"
+        data-mleague="todos">Todos los productos</button>
       ${leagues.map(l => `
-        <button class="flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors
-          ${currentLeague === l.id ? 'bg-emerald-500 text-white' : 'bg-gray-200 text-gray-700'}"
-          data-mleague="${l.id}">${l.icon} ${l.name}</button>
+        <button class="tab ${currentLeague === l.id ? 'is-active' : ''}"
+          data-mleague="${l.id}">${leagueMark(l)} ${l.name}</button>
       `).join('')}
     `;
 
     bar.querySelectorAll('[data-mleague]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.mleague;
+        if (id === 'todos') { showAllProducts(); return; }
+        showingAll = false;
         currentLeague = id === 'all' ? null : id;
         currentTeam = null;
         currentSearch = '';
@@ -426,14 +547,12 @@
     const teams = store.getTeamsByLeague(currentLeague);
     container.classList.remove('hidden');
     container.innerHTML = `
-      <button class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors
-        ${!currentTeam ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-600 border-gray-300 hover:border-emerald-400'}"
+      <button class="chip ${!currentTeam ? 'is-active' : ''}"
         data-tfilter="all">Todos</button>
       ${teams.map(t => `
-        <button class="px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5
-          ${currentTeam === t.id ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-gray-600 border-gray-300 hover:border-emerald-400'}"
+        <button class="chip ${currentTeam === t.id ? 'is-active' : ''}"
           data-tfilter="${t.id}">
-          <span class="w-2.5 h-2.5 rounded-full" style="background:${t.color}"></span>
+          ${teamMark(t)}
           ${t.name}
         </button>
       `).join('')}
@@ -456,21 +575,24 @@
     const bc = $('#breadcrumb');
     if (!bc) return;
 
-    let parts = [`<a href="#" class="hover:text-emerald-600 transition-colors" data-bc="home">Inicio</a>`];
+    let parts = [`<a href="#" class="crumb-link" data-bc="home">Inicio</a>`];
 
     if (currentSearch) {
-      parts.push(`<span class="text-gray-400 mx-1">›</span>`);
-      parts.push(`<span class="text-gray-800 font-medium">Búsqueda: "${currentSearch}"</span>`);
+      parts.push(`<span class="crumb-sep">/</span>`);
+      parts.push(`<span class="crumb-current">Búsqueda: "${currentSearch}"</span>`);
+    } else if (showingAll && !currentLeague) {
+      parts.push(`<span class="crumb-sep">/</span>`);
+      parts.push(`<span class="crumb-current">Todos los productos</span>`);
     } else {
       if (currentLeague) {
         const league = store.getLeagues().find(l => l.id === currentLeague);
-        parts.push(`<span class="text-gray-400 mx-1">›</span>`);
-        parts.push(`<a href="#" class="hover:text-emerald-600 transition-colors" data-bc="league">${league?.icon} ${league?.name}</a>`);
+        parts.push(`<span class="crumb-sep">/</span>`);
+        parts.push(`<a href="#" class="crumb-link" data-bc="league">${leagueMark(league)} ${league?.name}</a>`);
       }
       if (currentTeam) {
         const team = store.getTeamById(currentTeam);
-        parts.push(`<span class="text-gray-400 mx-1">›</span>`);
-        parts.push(`<span class="text-gray-800 font-medium">${team?.name}</span>`);
+        parts.push(`<span class="crumb-sep">/</span>`);
+        parts.push(`<span class="crumb-current">${team?.name}</span>`);
       }
     }
 
@@ -478,6 +600,7 @@
 
     bc.querySelector('[data-bc="home"]')?.addEventListener('click', (e) => {
       e.preventDefault();
+      showingAll = false;
       currentLeague = null;
       currentTeam = null;
       currentSearch = '';
@@ -517,98 +640,93 @@
     const discountPct = hasDiscount ? Math.round((1 - product.price / product.originalPrice) * 100) : 0;
 
     content.innerHTML = `
-      <div class="flex flex-col lg:flex-row">
+      <div class="pdp-bar">
+        <button onclick="closeProductModal()" class="pdp-back">← Volver al catálogo</button>
+      </div>
+      <div class="pdp-grid">
         <!-- Image Section -->
-        <div class="lg:w-1/2 relative">
-          <div class="zoom-container aspect-[4/5] bg-gray-100" id="zoomContainer">
-            <img id="modalMainImg" src="${product.images[0]}" alt="${product.title}"
-                 class="w-full h-full object-cover"
-                 onerror="this.src='https://placehold.co/400x500/e2e8f0/94a3b8?text=Sin+Imagen'">
-            <div class="zoom-lens" id="zoomLens"></div>
+        <div class="pdp-media">
+          <div class="pdp-main">
+            <div class="zoom-container" id="zoomContainer">
+              <img id="modalMainImg" src="${product.images[0]}" alt="${product.title}"
+                   onerror="this.src='https://placehold.co/400x500/e7e7e3/6b6b66?text=Sin+Imagen'">
+              <div class="zoom-lens" id="zoomLens"></div>
+            </div>
           </div>
           ${product.images.length > 1 ? `
-          <div class="flex gap-2 p-3 overflow-x-auto">
+          <div class="pdp-thumbs">
             ${product.images.map((img, i) => `
               <img src="${img}" alt="Foto ${i + 1}"
-                   class="gallery-thumb w-16 h-20 object-cover rounded-lg ${i === 0 ? 'active' : ''}"
-                   onclick="switchModalImage('${img}', this)"
+                   class="gallery-thumb ${i === 0 ? 'active' : ''}"
+                   onclick="switchModalImage(this.src, this)"
                    onerror="this.style.display='none'">
             `).join('')}
           </div>` : ''}
-          <button onclick="closeProductModal()"
-            class="absolute top-3 right-3 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors lg:hidden">✕</button>
         </div>
 
         <!-- Info Section -->
-        <div class="lg:w-1/2 p-5 lg:p-8 flex flex-col">
-          <button onclick="closeProductModal()"
-            class="hidden lg:flex self-end w-8 h-8 text-gray-400 hover:text-gray-600 items-center justify-center rounded-full hover:bg-gray-100 transition-colors mb-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+        <div class="pinfo">
+          <div>
+            ${league ? `<p class="label">${leagueMark(league)} ${league.name}</p>` : ''}
+            <h2 class="pdp-title">${product.title}</h2>
 
-          <!-- Badges -->
-          <div class="flex flex-wrap items-center gap-2 mb-3">
-            ${team ? `<span class="px-2 py-1 rounded-full text-[11px] font-bold text-white" style="background:${team.color}">${team.name}</span>` : ''}
-            ${league ? `<span class="text-xs text-gray-500">${league.icon} ${league.name}</span>` : ''}
-            ${product.featured ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-400 text-yellow-900">⭐ Destacado</span>` : ''}
-            ${product.isNew ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">🆕 Nuevo</span>` : ''}
-            ${hasDiscount ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white">-${discountPct}% OFF</span>` : ''}
+            <!-- Badges -->
+            <div class="pdp-tags">
+              ${team ? `<span class="card-team">${teamMark(team)}${team.name}</span>` : ''}
+              ${product.featured ? `<span class="tag">Destacado</span>` : ''}
+              ${product.isNew ? `<span class="tag">Nuevo</span>` : ''}
+              ${hasDiscount ? `<span class="tag low">-${discountPct}% OFF</span>` : ''}
+            </div>
+
+            <p class="pdp-desc">${product.description}</p>
           </div>
 
-          <h2 class="text-xl lg:text-2xl font-extrabold text-gray-900 mb-3">${product.title}</h2>
-          <p class="text-sm text-gray-600 leading-relaxed mb-5">${product.description}</p>
-
           <!-- Price -->
-          <div class="mb-5">
+          <div class="pprice">
             ${hasDiscount
-              ? `<p class="text-sm text-gray-400 line-through">Antes: ${CONFIG.currency}${product.originalPrice.toLocaleString('es-AR')}</p>
-                 <p class="text-3xl font-black text-red-600">${CONFIG.currency}${product.price.toLocaleString('es-AR')} <span class="text-sm font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-1">-${discountPct}%</span></p>`
-              : `<p class="text-3xl font-black text-gray-900">${CONFIG.currency}${product.price.toLocaleString('es-AR')}</p>`
+              ? `<b class="price low">${CONFIG.currency}${product.price.toLocaleString('es-AR')}</b>
+                 <span>Antes: <s class="price">${CONFIG.currency}${product.originalPrice.toLocaleString('es-AR')}</s></span>`
+              : `<b class="price">${CONFIG.currency}${product.price.toLocaleString('es-AR')}</b>`
             }
           </div>
 
           <!-- Sizes -->
-          <div class="mb-5">
-            <p class="text-sm font-semibold text-gray-700 mb-2">Seleccionar talle:</p>
-            <div class="flex flex-wrap gap-2" id="modalSizes">
+          <div>
+            <p class="label mb-2.5">Seleccionar talle</p>
+            <div class="szs" id="modalSizes">
               ${Object.entries(product.sizes).map(([size, stock]) => {
                 const avail = stock > 0;
                 return `
-                  <button class="size-badge ${avail ? 'available' : 'out-of-stock'} w-14 h-12 rounded-xl border-2 flex flex-col items-center justify-center
-                    ${avail ? 'border-gray-300 bg-white hover:border-emerald-400' : 'border-gray-200 bg-gray-50'}"
+                  <button class="size-badge ${avail ? 'available' : 'out-of-stock'}"
                     data-size="${size}" data-stock="${stock}" ${!avail ? 'disabled' : ''}
                     onclick="${avail ? `selectSize(this, '${size}')` : ''}">
-                    <span class="text-sm font-bold">${size}</span>
-                    <span class="text-[10px] ${avail ? (stock <= 3 ? 'text-amber-500' : 'text-emerald-500') : 'text-red-400'}">
+                    <span>${size}</span>
+                    <span class="sz-stock ${avail && stock <= 3 ? 'low' : ''}">
                       ${avail ? (stock <= 3 ? `¡${stock}!` : stock) : 'N/D'}
                     </span>
                   </button>`;
               }).join('')}
             </div>
-            <p id="modalSizeError" class="text-red-500 text-xs mt-1 hidden">Seleccioná un talle</p>
+            <p id="modalSizeError" class="err hidden">Seleccioná un talle</p>
           </div>
 
-          <!-- Quantity -->
-          <div class="mb-6">
-            <p class="text-sm font-semibold text-gray-700 mb-2">Cantidad:</p>
-            <div class="flex items-center gap-3">
-              <button onclick="adjustModalQty(-1)" class="w-10 h-10 rounded-xl border-2 border-gray-300 flex items-center justify-center text-lg font-bold text-gray-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors">−</button>
-              <span id="modalQty" class="text-lg font-bold w-8 text-center">1</span>
-              <button onclick="adjustModalQty(1)" class="w-10 h-10 rounded-xl border-2 border-gray-300 flex items-center justify-center text-lg font-bold text-gray-600 hover:border-emerald-400 hover:text-emerald-600 transition-colors">+</button>
+          <!-- Quantity + Actions -->
+          <div class="flex flex-col gap-2.5">
+            <div class="pact">
+              <div class="qty" aria-label="Cantidad">
+                <button onclick="adjustModalQty(-1)" aria-label="Restar una">−</button>
+                <span id="modalQty">1</span>
+                <button onclick="adjustModalQty(1)" aria-label="Sumar una">+</button>
+              </div>
+              <button onclick="addFromModal('${product.id}')"
+                class="btn"
+                ${totalStock === 0 ? 'disabled' : ''}>
+                Agregar al carrito
+              </button>
             </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex flex-col sm:flex-row gap-3 mt-auto">
-            <button onclick="addFromModal('${product.id}')"
-              class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm ${totalStock === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
-              ${totalStock === 0 ? 'disabled' : ''}>
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
-              Agregar al Carrito
-            </button>
             <button onclick="whatsappFromModal('${product.id}')"
-              class="btn-whatsapp flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 px-6 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              class="btn btn-outline w-full">
+              <svg fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
               Consultar por WhatsApp
             </button>
           </div>
@@ -721,45 +839,58 @@
     if (countEl) countEl.textContent = `${cart.getTotalItems()} item${cart.getTotalItems() !== 1 ? 's' : ''}`;
 
     container.innerHTML = cart.items.map((item, idx) => `
-      <div class="flex gap-3 p-3 bg-gray-50 rounded-xl">
-        <img src="${item.image}" alt="${item.title}" class="w-16 h-20 object-cover rounded-lg flex-shrink-0"
-             onerror="this.src='https://placehold.co/64x80/e2e8f0/94a3b8?text=?'">
-        <div class="flex-1 min-w-0">
-          <h4 class="text-sm font-semibold text-gray-800 line-clamp-2">${item.title}</h4>
-          <p class="text-xs text-gray-500 mt-0.5">Talle: <span class="font-medium">${item.size}</span></p>
-          <div class="flex items-center justify-between mt-2">
-            <div class="flex items-center gap-2">
-              <button onclick="cart.updateQuantity(${idx}, ${item.quantity - 1})"
-                class="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-sm font-bold text-gray-600 hover:border-emerald-400">−</button>
-              <span class="text-sm font-bold w-5 text-center">${item.quantity}</span>
-              <button onclick="cart.updateQuantity(${idx}, ${item.quantity + 1})"
-                class="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-sm font-bold text-gray-600 hover:border-emerald-400">+</button>
-            </div>
-            <span class="text-sm font-bold text-gray-900">${CONFIG.currency}${(item.price * item.quantity).toLocaleString('es-AR')}</span>
+      <div class="line">
+        <div class="th">
+          <img src="${item.image}" alt="${item.title}"
+               onerror="this.src='https://placehold.co/64x80/e7e7e3/6b6b66?text=?'">
+        </div>
+        <div>
+          <h4 class="t">${item.title}</h4>
+          <p class="d">Talle: ${item.size}</p>
+          <div class="qty qty-sm">
+            <button onclick="cart.updateQuantity(${idx}, ${item.quantity - 1})" aria-label="Restar una">−</button>
+            <span>${item.quantity}</span>
+            <button onclick="cart.updateQuantity(${idx}, ${item.quantity + 1})" aria-label="Sumar una">+</button>
           </div>
         </div>
-        <button onclick="cart.removeItem(${idx})"
-          class="self-start text-gray-400 hover:text-red-500 transition-colors p-1" title="Eliminar">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-        </button>
+        <div class="r">
+          <span class="price">${CONFIG.currency}${(item.price * item.quantity).toLocaleString('es-AR')}</span>
+          <button onclick="cart.removeItem(${idx})" class="link-btn" title="Eliminar">Quitar</button>
+        </div>
       </div>
     `).join('');
 
-    const subtotalEl = $('#cartSubtotal');
-    if (subtotalEl) subtotalEl.textContent = `${CONFIG.currency}${cart.getTotal().toLocaleString('es-AR')}`;
-    if (totalEl) totalEl.textContent = `${CONFIG.currency}${cart.getFinalTotal().toLocaleString('es-AR')}`;
-
-    const res = $('#shippingResult');
-    const lbl = $('#shippingLabel');
-    const costDisp = $('#shippingCostDisplay');
-    if (cart.shippingCost > 0) {
-      if (res) res.classList.remove('hidden');
-      if (lbl) lbl.textContent = `Envío (${cart.shippingCompany.toUpperCase()}):`;
-      if (costDisp) costDisp.textContent = `${CONFIG.currency}${cart.shippingCost.toLocaleString('es-AR')}`;
-    } else {
-      if (res) res.classList.add('hidden');
-    }
+    if (totalEl) totalEl.textContent = `${CONFIG.currency}${cart.getTotal().toLocaleString('es-AR')}`;
   };
+
+  // ══════════════════════════════════════════════════════════════
+  //  Header que se esconde al bajar y vuelve al subir
+  // ══════════════════════════════════════════════════════════════
+  function bindHeaderAutoHide() {
+    const header = $('.site-header');
+    if (!header) return;
+    const THRESHOLD = 8;   // px de movimiento antes de cambiar, para que no parpadee
+    let lastY = window.scrollY;
+    const setHidden = (hidden) => document.body.classList.toggle('header-hidden', hidden);
+
+    window.addEventListener('scroll', () => {
+      const y = window.scrollY;
+      // Arriba de todo, o escribiendo en el buscador, el header siempre se ve
+      if (y <= header.offsetHeight || header.contains(document.activeElement)) {
+        setHidden(false);
+        lastY = y;
+      } else if (y > lastY + THRESHOLD) {
+        setHidden(true);
+        lastY = y;
+      } else if (y < lastY - THRESHOLD) {
+        setHidden(false);
+        lastY = y;
+      }
+    }, { passive: true });
+
+    // Si se llega con el teclado a algo del header, vuelve a aparecer
+    header.addEventListener('focusin', () => setHidden(false));
+  }
 
   // ══════════════════════════════════════════════════════════════
   //  Event Bindings
@@ -769,36 +900,43 @@
     $('#cartOverlay')?.addEventListener('click', closeCart);
     $('#closeCartBtn')?.addEventListener('click', closeCart);
 
-    $('#clearCartBtn')?.addEventListener('click', () => {
+    bindHeaderAutoHide();
+
+    // La marca lleva a la portada y arriba de todo, sin recargar la página
+    $('.site-header .brand')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (currentLeague || currentTeam || currentSearch || showingAll) {
+        showingAll = false;
+        currentLeague = null;
+        currentTeam = null;
+        currentSearch = '';
+        $$('#searchInput, #searchInputMobile').forEach(i => i.value = '');
+        renderAll();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    $('#clearCartBtn')?.addEventListener('click', async () => {
       if (cart.isEmpty()) return;
-      if (confirm('¿Vaciar todo el carrito?')) cart.clear();
+      const units = cart.getTotalItems();
+      const total = `${CONFIG.currency}${cart.getTotal().toLocaleString('es-AR')}`;
+      const ok = await confirmDialog({
+        kicker: 'Vaciar carrito',
+        title: '¿Vaciar el carrito?',
+        message: units === 1
+          ? `Se quita el producto que agregaste, por ${total}. Lo podés volver a agregar desde el catálogo.`
+          : `Se quitan los ${units} productos que agregaste, por ${total}. Los podés volver a agregar desde el catálogo.`,
+        media: $('#cartBtn .cart-icon')?.outerHTML || '',
+        confirmLabel: 'Vaciar carrito',
+        cancelLabel: 'Volver al carrito',
+        note: '',
+      });
+      if (ok) cart.clear();
     });
 
     $('#checkoutWhatsApp')?.addEventListener('click', () => {
       if (cart.isEmpty()) { showNotification('El carrito está vacío', 'error'); return; }
       openInvoiceModal();
-    });
-
-    $('#calcShippingBtn')?.addEventListener('click', () => {
-      if (cart.isEmpty()) { showNotification('Agrega productos primero', 'info'); return; }
-      const cp = $('#cartZipCode').value.trim();
-      const comp = $('#cartShippingCompany').value;
-      
-      if (!cp || !comp) {
-        showNotification('Ingresá el código postal y seleccioná una empresa', 'error');
-        return;
-      }
-      
-      let base = 5000;
-      if (comp === 'andreani') base = 6500;
-      if (comp === 'oca') base = 5500;
-
-      // Incrementar un poco si el CP empieza con un número mayor a 3 (lógica simple para demostración)
-      const firstDigit = parseInt(cp[0]);
-      if (!isNaN(firstDigit) && firstDigit > 3) base += 2000;
-
-      cart.setShipping(comp, cp, base);
-      showNotification('Costo de envío calculado', 'success');
     });
 
     $('#productModal')?.addEventListener('click', (e) => {
@@ -869,14 +1007,11 @@
 
     html += `</div>`;
     
-    html += `<div class="flex justify-between text-xs mt-2 text-gray-600"><span>Subtotal:</span> <span>${CONFIG.currency}${cart.getTotal().toLocaleString('es-AR')}</span></div>`;
-    if (cart.shippingCost > 0) {
-       html += `<div class="flex justify-between text-xs mt-1 text-gray-600"><span>Envío (${cart.shippingCompany.toUpperCase()}):</span> <span>${CONFIG.currency}${cart.shippingCost.toLocaleString('es-AR')}</span></div>`;
-    }
+    html += `<div class="flex justify-between text-xs mt-2 text-gray-600"><span>Envío:</span> <span>A coordinar con el vendedor</span></div>`;
     html += `
       <div class="flex justify-between font-black text-lg mt-4 pt-3 border-t border-dashed border-gray-300 text-gray-900">
-        <span>TOTAL FINAL:</span>
-        <span>${CONFIG.currency}${cart.getFinalTotal().toLocaleString('es-AR')}</span>
+        <span>TOTAL SIN ENVÍO:</span>
+        <span>${CONFIG.currency}${cart.getTotal().toLocaleString('es-AR')}</span>
       </div>
     `;
 
@@ -949,6 +1084,10 @@
 
   window.confirmAndSendWhatsApp = function() {
     cart.sendWhatsApp();
+    // Con el pedido ya en WhatsApp se cierra todo y la tienda queda lista para seguir mirando
+    closeInvoiceModal();
+    closeCart();
+    showNotification('Abrimos WhatsApp con tu pedido', 'success');
   };
 
 })();
