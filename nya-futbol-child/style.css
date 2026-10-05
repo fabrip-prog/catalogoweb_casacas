@@ -1,0 +1,1033 @@
+/*
+ * Theme Name:   NYA Fútbol – Child Theme
+ * Theme URI:    https://nyafutbol.com
+ * Description:  Tema hijo de Storefront para NYA Fútbol ⚽ — Catálogo de camisetas de fútbol.
+ *               Replica el lenguaje visual "Casaca FC Estudio": fondo gris cálido, fotos sobre
+ *               placas, tipografía Instrument Sans + DM Mono, filetes de 1px y esquinas rectas.
+ * Author:       NYA Fútbol
+ * Author URI:   https://nyafutbol.com
+ * Template:     storefront
+ * Version:      1.0.0
+ * Requires at least: 6.0
+ * Tested up to: 6.7
+ * Requires PHP: 7.4
+ * License:      GNU General Public License v2 or later
+ * License URI:  https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:  nya-futbol-child
+ * Tags:         woocommerce, e-commerce, football, sports, custom-colors
+ *
+ * Este tema hijo hereda de Storefront (el tema oficial de WooCommerce)
+ * y sobrescribe estilos y plantillas para lograr el diseño personalizado
+ * de NYA Fútbol.
+ */
+
+/* ===================================================================
+   NYA Fútbol – Sistema de Diseño
+   Fondo gris cálido de estudio, fotos sobre placas, Instrument Sans +
+   DM Mono, filetes de 1 px y esquinas rectas.
+   =================================================================== */
+
+/* ── Variables de diseño ──────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --nya-bg: #F4F4F2;
+  --nya-surface: #FAFAF8;
+  --nya-tile: #E7E7E3;
+  --nya-tile-2: #EEEEEB;
+  --nya-ink: #121212;
+  --nya-ink-2: #3A3A37;
+  --nya-muted: #6B6B66;
+  --nya-faint: #B4B4AE;
+  --nya-line: #DADAD5;
+  --nya-line-2: #C5C5BF;
+  --nya-low: #9B3D2F;
+  --nya-scrim: rgba(18, 18, 18, .36);
+  --nya-shadow: rgba(18, 18, 18, .16);
+  --nya-header: #F4F4F2;
+  --nya-f-sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --nya-f-mono: "DM Mono", ui-monospace, Menlo, Consolas, monospace;
+  --nya-gutter: clamp(16px, 4vw, 40px);
+}
+
+/* ── Reset global de Storefront ───────────────────────────────────── */
+/* Sobreescribimos las bases de Storefront para imponer nuestro sistema */
+html { scroll-behavior: smooth; }
+
+body,
+.site-content,
+.woocommerce {
+  background: var(--nya-bg) !important;
+  color: var(--nya-ink);
+  font-family: var(--nya-f-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--nya-ink);
+  color: var(--nya-bg);
+}
+
+/* Esquinas rectas en TODO — anula los rounded de Storefront */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
+/* ── Tipografía ──────────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--nya-f-sans);
+  color: var(--nya-ink);
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+
+.nya-label {
+  margin: 0;
+  font-family: var(--nya-f-mono);
+  font-size: 12px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+}
+
+.nya-mono {
+  font-family: var(--nya-f-mono);
+  font-size: 12px;
+  color: var(--nya-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.site-header,
+.storefront-primary-navigation,
+.main-navigation {
+  background: var(--nya-header) !important;
+  border-bottom: 1px solid var(--nya-line) !important;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+/* Logo / Marca */
+.site-branding {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.site-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  letter-spacing: .24em !important;
+  text-transform: uppercase;
+  color: var(--nya-ink) !important;
+}
+
+.site-title a {
+  color: var(--nya-ink) !important;
+  text-decoration: none !important;
+}
+
+.custom-logo {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* Navegación */
+.main-navigation ul li a {
+  color: var(--nya-ink-2) !important;
+  font-size: 14px;
+  text-transform: none;
+  font-weight: 400;
+  transition: color .2s;
+}
+
+.main-navigation ul li a:hover {
+  color: var(--nya-ink) !important;
+}
+
+.main-navigation ul li.current-menu-item > a {
+  color: var(--nya-ink) !important;
+  font-weight: 500;
+}
+
+/* Buscador del header */
+.site-header .site-search .widget_product_search input[type="search"],
+.site-header .search-field {
+  width: 100%;
+  height: 34px;
+  padding: 0 2px;
+  border: 0 !important;
+  border-bottom: 1px solid var(--nya-line-2) !important;
+  background: transparent !important;
+  color: var(--nya-ink);
+  font-size: 14px;
+}
+
+.site-header .search-field:focus {
+  outline: none !important;
+  border-bottom-color: var(--nya-ink) !important;
+  box-shadow: none !important;
+}
+
+/* Icono del carrito en el header */
+.site-header-cart .cart-contents {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nya-ink) !important;
+  font-size: 14px;
+  text-decoration: none !important;
+}
+
+.site-header-cart .cart-contents:hover {
+  text-decoration: underline !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 6px !important;
+}
+
+.site-header-cart .count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Wrap / Layout ───────────────────────────────────────────────── */
+.col-full,
+.site-content .col-full {
+  max-width: 1320px !important;
+  padding-inline: var(--nya-gutter) !important;
+}
+
+/* ── Breadcrumbs ─────────────────────────────────────────────────── */
+.woocommerce-breadcrumb {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 24px !important;
+  font-size: 14px !important;
+  color: var(--nya-muted) !important;
+}
+
+.woocommerce-breadcrumb a {
+  color: var(--nya-ink-2) !important;
+  text-decoration: none !important;
+}
+
+.woocommerce-breadcrumb a:hover {
+  color: var(--nya-ink) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 4px !important;
+}
+
+/* ── Botones ─────────────────────────────────────────────────────── */
+.button,
+.woocommerce a.button,
+.woocommerce button.button,
+.woocommerce input.button,
+.woocommerce #respond input#submit,
+.wc-block-components-button,
+button.wp-element-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 24px !important;
+  border: 1px solid var(--nya-ink) !important;
+  background: var(--nya-ink) !important;
+  color: var(--nya-bg) !important;
+  font-family: var(--nya-f-sans) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: .01em;
+  text-decoration: none !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color .2s, color .2s;
+}
+
+.button:hover,
+.woocommerce a.button:hover,
+.woocommerce button.button:hover,
+.woocommerce input.button:hover,
+.woocommerce #respond input#submit:hover,
+button.wp-element-button:hover {
+  background: #2B2B29 !important;
+  color: var(--nya-bg) !important;
+}
+
+.button:disabled,
+.woocommerce a.button:disabled,
+.woocommerce button.button:disabled {
+  opacity: .35 !important;
+  cursor: not-allowed !important;
+}
+
+/* Botón outline */
+.woocommerce a.button.alt,
+.button.alt {
+  background: transparent !important;
+  color: var(--nya-ink) !important;
+}
+
+.woocommerce a.button.alt:hover,
+.button.alt:hover {
+  background: var(--nya-tile-2) !important;
+  color: var(--nya-ink) !important;
+}
+
+/* ── Grilla de Productos (Archive / Shop) ────────────────────────── */
+.woocommerce ul.products,
+.woocommerce-page ul.products {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 42vw), 1fr)) !important;
+  gap: 44px clamp(12px, 1.6vw, 22px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.woocommerce ul.products::before,
+.woocommerce ul.products::after {
+  display: none !important;
+}
+
+/* ── Card de Producto ────────────────────────────────────────────── */
+.woocommerce ul.products li.product {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  float: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: left !important;
+}
+
+/* Placa de foto ("estudio") */
+.woocommerce ul.products li.product a img,
+.woocommerce ul.products li.product .attachment-woocommerce_thumbnail {
+  position: relative;
+  display: block;
+  width: 100% !important;
+  aspect-ratio: 4 / 5;
+  object-fit: contain;
+  background: var(--nya-tile) !important;
+  padding: 7%;
+  margin: 0 !important;
+  filter: drop-shadow(0 16px 18px var(--nya-shadow));
+  transition: transform .7s cubic-bezier(.2, .7, .2, 1);
+}
+
+.woocommerce ul.products li.product:hover a img {
+  transform: scale(1.03);
+}
+
+/* Título del producto en la card */
+.woocommerce ul.products li.product .woocommerce-loop-product__title,
+.woocommerce ul.products li.product h2 {
+  display: -webkit-box;
+  margin: 12px 0 0 !important;
+  overflow: hidden;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+  color: var(--nya-ink) !important;
+  padding: 0 !important;
+  letter-spacing: 0 !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.woocommerce ul.products li.product a:hover .woocommerce-loop-product__title {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+/* Precio en la card */
+.woocommerce ul.products li.product .price {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin: 6px 0 0 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  color: var(--nya-ink) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.woocommerce ul.products li.product .price del {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--nya-muted) !important;
+}
+
+.woocommerce ul.products li.product .price ins {
+  text-decoration: none !important;
+  font-weight: 500;
+}
+
+/* Badge de descuento/oferta */
+.woocommerce span.onsale {
+  position: absolute !important;
+  z-index: 1;
+  top: 10px !important;
+  left: 10px !important;
+  right: auto !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  padding: 3px 6px 2px !important;
+  background: var(--nya-surface) !important;
+  color: var(--nya-low) !important;
+  font-family: var(--nya-f-mono) !important;
+  font-size: 10.5px !important;
+  line-height: 1.3 !important;
+  letter-spacing: .03em !important;
+  text-transform: uppercase !important;
+  font-weight: 400 !important;
+}
+
+/* Botón "Añadir al carrito" en la card */
+.woocommerce ul.products li.product .button,
+.woocommerce ul.products li.product a.add_to_cart_button {
+  margin-top: auto !important;
+  padding-top: 14px !important;
+  height: 38px;
+  padding: 0 14px !important;
+  font-size: 13px !important;
+}
+
+/* ── Página de Producto Individual ───────────────────────────────── */
+.single-product div.product {
+  display: grid !important;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 32px 56px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px var(--nya-gutter) 96px;
+}
+
+.single-product div.product > * {
+  min-width: 0;
+}
+
+/* Galería de imágenes */
+.single-product div.product div.images {
+  max-width: 640px;
+}
+
+.single-product div.product div.images .woocommerce-product-gallery__image img,
+.single-product div.product div.images img {
+  background: var(--nya-tile) !important;
+  padding: clamp(24px, 8%, 56px);
+  object-fit: contain;
+  aspect-ratio: 4 / 5;
+  width: 100% !important;
+  box-shadow: 0 26px 40px -26px var(--nya-shadow);
+}
+
+/* Thumbnails de la galería */
+.single-product div.product div.images .flex-control-thumbs li img {
+  width: 64px;
+  height: 80px;
+  object-fit: contain;
+  background: var(--nya-tile);
+  border: 1px solid transparent;
+  opacity: .6;
+  cursor: pointer;
+  transition: border-color .2s, opacity .2s;
+}
+
+.single-product div.product div.images .flex-control-thumbs li img.flex-active,
+.single-product div.product div.images .flex-control-thumbs li img:hover {
+  border-color: var(--nya-ink);
+  opacity: 1;
+}
+
+/* Info del producto */
+.single-product div.product div.summary {
+  position: sticky;
+  top: 80px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.single-product div.product .product_title {
+  margin: 10px 0 0 !important;
+  font-size: clamp(28px, 3.4vw, 44px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.025em !important;
+  line-height: 1.05 !important;
+  text-wrap: balance;
+}
+
+/* Precio en la ficha */
+.single-product div.product p.price {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+}
+
+.single-product div.product p.price .woocommerce-Price-amount,
+.single-product div.product p.price ins .woocommerce-Price-amount {
+  font-size: 26px !important;
+  font-weight: 500 !important;
+  color: var(--nya-ink) !important;
+}
+
+.single-product div.product p.price del .woocommerce-Price-amount {
+  font-size: 14px !important;
+  color: var(--nya-muted) !important;
+}
+
+/* Descripción corta */
+.single-product div.product .woocommerce-product-details__short-description {
+  max-width: 60ch;
+  margin: 14px 0 0;
+  color: var(--nya-ink-2);
+}
+
+/* Selector de variaciones (talles) — estilo grid como NYA */
+.single-product .variations td {
+  display: block;
+  padding: 0;
+}
+
+.single-product .variations select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--nya-line-2);
+  background: var(--nya-surface);
+  color: var(--nya-ink);
+  font-size: 14px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.single-product .variations select:focus {
+  outline: none;
+  border-color: var(--nya-ink);
+}
+
+/* Cantidad */
+.single-product div.product .quantity {
+  display: inline-flex;
+  align-items: center;
+  height: 46px;
+  border: 1px solid var(--nya-line-2);
+}
+
+.single-product div.product .quantity input.qty {
+  min-width: 24px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Categoría / meta del producto */
+.single-product div.product .product_meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--nya-ink-2);
+}
+
+.single-product div.product .product_meta a {
+  color: var(--nya-ink-2);
+  text-decoration: none;
+}
+
+.single-product div.product .product_meta a:hover {
+  color: var(--nya-ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+/* Responsive: producto individual en 1 columna */
+@media (max-width: 860px) {
+  .single-product div.product {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding-top: 0;
+  }
+
+  .single-product div.product div.images {
+    max-width: none;
+    margin-inline: calc(var(--nya-gutter) * -1);
+  }
+
+  .single-product div.product div.summary {
+    position: static;
+  }
+}
+
+/* ── Tabs de producto (Descripción, Información adicional, Reseñas) ─ */
+.woocommerce-tabs ul.tabs {
+  display: flex !important;
+  align-items: center;
+  gap: 24px;
+  padding: 0 !important;
+  margin: 40px 0 24px !important;
+  list-style: none !important;
+  border-bottom: 1px solid var(--nya-line) !important;
+  background: transparent !important;
+}
+
+.woocommerce-tabs ul.tabs::before,
+.woocommerce-tabs ul.tabs::after {
+  display: none !important;
+}
+
+.woocommerce-tabs ul.tabs li {
+  flex: none;
+  padding: 10px 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid transparent !important;
+  background: none !important;
+}
+
+.woocommerce-tabs ul.tabs li a {
+  color: var(--nya-muted) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  padding: 0 !important;
+  transition: color .2s;
+}
+
+.woocommerce-tabs ul.tabs li a:hover {
+  color: var(--nya-ink) !important;
+}
+
+.woocommerce-tabs ul.tabs li.active {
+  border-bottom-color: var(--nya-ink) !important;
+}
+
+.woocommerce-tabs ul.tabs li.active a {
+  color: var(--nya-ink) !important;
+}
+
+/* ── Carrito ──────────────────────────────────────────────────────── */
+.woocommerce-cart .woocommerce table.shop_table {
+  border: 1px solid var(--nya-line) !important;
+  background: var(--nya-surface) !important;
+}
+
+.woocommerce-cart .woocommerce table.shop_table th {
+  font-family: var(--nya-f-mono);
+  font-size: 11px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+  border-bottom: 1px solid var(--nya-line) !important;
+  background: transparent !important;
+}
+
+.woocommerce-cart .woocommerce table.shop_table td {
+  border-bottom: 1px solid var(--nya-line) !important;
+  padding: 16px !important;
+  font-size: 14.5px;
+  color: var(--nya-ink);
+}
+
+.woocommerce-cart .woocommerce table.shop_table td.product-thumbnail img {
+  width: 64px;
+  aspect-ratio: 4 / 5;
+  background: var(--nya-tile);
+  object-fit: contain;
+}
+
+.woocommerce-cart .woocommerce table.shop_table td.product-name a {
+  font-weight: 500;
+  color: var(--nya-ink) !important;
+  text-decoration: none;
+}
+
+.woocommerce-cart .woocommerce table.shop_table td.product-name a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Totales del carrito */
+.woocommerce-cart .cart_totals {
+  background: var(--nya-surface);
+  border: 1px solid var(--nya-line);
+  padding: 20px;
+}
+
+.woocommerce-cart .cart_totals h2 {
+  font-size: 20px !important;
+  font-weight: 500 !important;
+  letter-spacing: -.01em;
+}
+
+.woocommerce-cart .cart_totals table th {
+  font-family: var(--nya-f-mono);
+  font-size: 11px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+}
+
+.woocommerce-cart .cart_totals .order-total th,
+.woocommerce-cart .cart_totals .order-total td {
+  font-size: 16px;
+  font-weight: 600;
+  border-top: 1px solid var(--nya-ink) !important;
+}
+
+/* ── Checkout ────────────────────────────────────────────────────── */
+.woocommerce form.checkout,
+.woocommerce-checkout {
+  background: var(--nya-bg);
+}
+
+.woocommerce form .form-row input.input-text,
+.woocommerce form .form-row textarea,
+.woocommerce form .form-row select,
+.select2-container--default .select2-selection--single {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px !important;
+  border: 1px solid var(--nya-line-2) !important;
+  background: var(--nya-surface) !important;
+  color: var(--nya-ink) !important;
+  font-size: 14px;
+  transition: border-color .2s;
+}
+
+.woocommerce form .form-row input.input-text:focus,
+.woocommerce form .form-row select:focus {
+  outline: none !important;
+  border-color: var(--nya-ink) !important;
+  box-shadow: none !important;
+}
+
+.woocommerce form .form-row label {
+  font-family: var(--nya-f-mono);
+  font-size: 11px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+}
+
+/* ── Widgets / Sidebar ───────────────────────────────────────────── */
+.widget-area .widget {
+  border-bottom: 1px solid var(--nya-line);
+  padding-bottom: 24px;
+  margin-bottom: 24px;
+}
+
+.widget-area .widget-title,
+.widget-area .widgettitle {
+  font-family: var(--nya-f-mono);
+  font-size: 12px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+  margin-bottom: 16px;
+}
+
+.widget-area .widget ul li a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  color: var(--nya-ink-2) !important;
+  font-size: 14px;
+  text-decoration: none;
+  transition: color .2s;
+}
+
+.widget-area .widget ul li a:hover {
+  color: var(--nya-ink) !important;
+}
+
+.widget-area .widget ul li.current-cat > a {
+  color: var(--nya-ink) !important;
+  font-weight: 500;
+}
+
+/* ── Avisos / Notices ────────────────────────────────────────────── */
+.woocommerce-message,
+.woocommerce-info {
+  background: var(--nya-ink) !important;
+  color: var(--nya-bg) !important;
+  border: 0 !important;
+  font-size: 14px;
+  padding: 12px 18px !important;
+}
+
+.woocommerce-message::before,
+.woocommerce-info::before {
+  color: var(--nya-bg) !important;
+}
+
+.woocommerce-error {
+  background: var(--nya-low) !important;
+  color: var(--nya-bg) !important;
+  border: 0 !important;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────── */
+.site-footer {
+  padding-block: 28px 40px !important;
+  border-top: 1px solid var(--nya-line) !important;
+  background: var(--nya-bg) !important;
+  font-size: 13px;
+  color: var(--nya-muted);
+}
+
+.site-footer .col-full {
+  max-width: 1320px;
+}
+
+.site-footer .widget-title,
+.site-footer .widgettitle {
+  font-family: var(--nya-f-mono);
+  font-size: 12px;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: var(--nya-muted);
+}
+
+.site-footer a {
+  color: var(--nya-muted);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  transition: color .2s;
+}
+
+.site-footer a:hover {
+  color: var(--nya-ink);
+}
+
+.site-info {
+  border-top: 1px solid var(--nya-line) !important;
+  padding-top: 18px !important;
+  margin-top: 28px;
+}
+
+/* ── Estrellas de valoración ─────────────────────────────────────── */
+.star-rating {
+  color: var(--nya-ink) !important;
+}
+
+/* ── Paginación ──────────────────────────────────────────────────── */
+.woocommerce nav.woocommerce-pagination ul {
+  border: 0 !important;
+}
+
+.woocommerce nav.woocommerce-pagination ul li {
+  border: 1px solid var(--nya-line-2) !important;
+}
+
+.woocommerce nav.woocommerce-pagination ul li a {
+  color: var(--nya-ink-2) !important;
+  font-size: 14px;
+}
+
+.woocommerce nav.woocommerce-pagination ul li a:hover {
+  background: var(--nya-tile-2) !important;
+  color: var(--nya-ink) !important;
+}
+
+.woocommerce nav.woocommerce-pagination ul li span.current {
+  background: var(--nya-ink) !important;
+  color: var(--nya-bg) !important;
+}
+
+/* ── Productos relacionados / Up-sells ───────────────────────────── */
+.single-product .related.products,
+.single-product .up-sells {
+  border-top: 1px solid var(--nya-ink);
+  padding-top: 22px;
+  margin-top: 56px;
+}
+
+.single-product .related.products > h2,
+.single-product .up-sells > h2 {
+  font-size: clamp(24px, 3.2vw, 34px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.025em;
+  margin-bottom: 22px !important;
+}
+
+/* ── Animaciones ─────────────────────────────────────────────────── */
+@keyframes nya-fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.woocommerce ul.products li.product {
+  animation: nya-fadeInUp .45s ease both;
+}
+
+.woocommerce ul.products li.product:nth-child(1) { animation-delay: .03s; }
+.woocommerce ul.products li.product:nth-child(2) { animation-delay: .06s; }
+.woocommerce ul.products li.product:nth-child(3) { animation-delay: .09s; }
+.woocommerce ul.products li.product:nth-child(4) { animation-delay: .12s; }
+.woocommerce ul.products li.product:nth-child(5) { animation-delay: .15s; }
+.woocommerce ul.products li.product:nth-child(6) { animation-delay: .18s; }
+.woocommerce ul.products li.product:nth-child(7) { animation-delay: .21s; }
+.woocommerce ul.products li.product:nth-child(8) { animation-delay: .24s; }
+.woocommerce ul.products li.product:nth-child(9) { animation-delay: .27s; }
+.woocommerce ul.products li.product:nth-child(10) { animation-delay: .30s; }
+.woocommerce ul.products li.product:nth-child(11) { animation-delay: .33s; }
+.woocommerce ul.products li.product:nth-child(12) { animation-delay: .36s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
+/* ── Scrollbar personalizado ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--nya-line-2); }
+::-webkit-scrollbar-thumb:hover { background: var(--nya-faint); }
+
+/* ── Botón flotante de WhatsApp ──────────────────────────────────── */
+.nya-whatsapp-float {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  right: 20px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 20px;
+  background: #25D366;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .3);
+  transition: background-color .2s, transform .2s;
+}
+
+.nya-whatsapp-float:hover {
+  background: #1FAD54;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.nya-whatsapp-float svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* ── Categorías como "pills" (chips) ─────────────────────────────── */
+.nya-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+
+.nya-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--nya-line-2);
+  background: transparent;
+  color: var(--nya-ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: border-color .2s;
+}
+
+.nya-chip:hover {
+  border-color: var(--nya-ink);
+  color: var(--nya-ink);
+}
+
+.nya-chip.is-active {
+  background: var(--nya-ink);
+  border-color: var(--nya-ink);
+  color: var(--nya-bg);
+}
+
+/* ── Mini-carrito del header ─────────────────────────────────────── */
+.site-header-cart .widget_shopping_cart {
+  background: var(--nya-surface) !important;
+  border: 1px solid var(--nya-line) !important;
+}
+
+.site-header-cart .widget_shopping_cart .product_list_widget li {
+  border-bottom: 1px solid var(--nya-line);
+  padding: 16px 0;
+}
+
+.site-header-cart .widget_shopping_cart .product_list_widget li a {
+  color: var(--nya-ink) !important;
+  font-weight: 500;
+}
+
+.site-header-cart .widget_shopping_cart .woocommerce-mini-cart__total {
+  border-top: 1px solid var(--nya-ink);
+  padding-top: 10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ── Secciones de la Tienda ──────────────────────────────────────── */
+.nya-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 24px;
+  margin-bottom: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--nya-ink);
+}
+
+.nya-section-title {
+  margin: 0;
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 500;
+  letter-spacing: -.025em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+/* ── Resultado de búsqueda / Contadores ──────────────────────────── */
+.woocommerce-result-count {
+  font-family: var(--nya-f-mono);
+  font-size: 12px;
+  color: var(--nya-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.woocommerce-ordering select {
+  height: 40px;
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--nya-line-2);
+  background: var(--nya-surface);
+  color: var(--nya-ink);
+  font-size: 14px;
+}
